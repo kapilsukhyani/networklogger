@@ -1,0 +1,39 @@
+socks is ip  protocol
+routes network packets from client to server through a proxy server
+provide means to authenticate
+standard for circuit level gateways
+another usage of socks is as a circumvention tool, which allows access of blocked content  
+
+circuit level gateways: 
+"1.monitor tcp handshaking to determine whether the session in legitimate,
+2. circuit level gateway firewall applications conceal the network from imposters
+3. usually cheap and use to protect the identity of the private network they protect
+4. they do not filter individual  packets
+"
+
+Tor (The onion router)
+A free software developed to conceal the user's identity ad internet activity from external world.
+It uses a multi-layered encryption  to transfer the data  from source to destination.
+It uses a network of relays to decrypt the data step by step and prevents the user identity and internet activity from being monitored or accessed
+The network relays are hosted by volunteers and the last relay in the network is responsible for decrypting the last layer and the transferring data to destination
+The term onion routing refers to the layers of routing like layers of onion, used to anonymize the communication.
+Tor encrypts the original data including the destination IP address and sends it through a virtual circuit made or randomly selected TOR relays.
+Each relay decrypts a layer in the data only to reveal next relay the remaining encrypted data.
+The last relay in the network decrypts the last layer 
+It is an implementation of onion relay which bounces communication through a randomly selected relays hosted by volunteers around the globe.
+
+
+IPTables test
+
+iptables -t nat -A OUTPUT -m owner --uid-owner u0_a56 -j ACCEPT
+iptables -t nat -A OUTPUT -p 6 --dport 80 -j DNAT --to 127.0.0.1:8080
+
+
+Application features
+1. Choose application to monitor 
+2. start/stop monitoring
+3. create log file using log4j
+4. admob
+5. server home page
+6. show logs
+7. settings (preferences) 1. log file size 2. purge time 3. delete logs 4. logs folder
