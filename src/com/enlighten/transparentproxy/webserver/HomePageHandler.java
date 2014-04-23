@@ -88,7 +88,7 @@ public class HomePageHandler implements HttpRequestHandler {
 				.getHeaders("User-Agent")[0].getValue());
 		try {
 			httpResponse = httpClient.execute(
-					new HttpHost(request.getHeaders("HOST")[0].getValue()),
+					new HttpHost(request.getHeaders("HOST")[0].getValue(),443),
 					request);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
