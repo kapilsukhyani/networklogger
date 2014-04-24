@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -18,12 +19,14 @@ import javax.net.ssl.SSLServerSocketFactory;
 
 import org.apache.http.ConnectionClosedException;
 import org.apache.http.HttpException;
+import org.apache.http.HttpResponse;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.DefaultHttpServerConnection;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.BasicHttpProcessor;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandlerRegistry;
 import org.apache.http.protocol.HttpService;
 import org.apache.http.protocol.ResponseConnControl;
@@ -71,9 +74,27 @@ public class WebServer extends Thread {
 		httpContext = new BasicHttpContext();
 
 		httpproc.addInterceptor(new ResponseDate());
-		httpproc.addInterceptor(new ResponseServer());
-		httpproc.addInterceptor(new ResponseContent());
-		httpproc.addInterceptor(new ResponseConnControl());
+		httpproc.addInterceptor(new ResponseServer() {
+			@Override
+			public void process(HttpResponse response, HttpContext context)
+					throws HttpException, IOException {
+				super.process(response, context);
+			}
+		});
+		httpproc.addInterceptor(new ResponseContent() {
+			@Override
+			public void process(HttpResponse response, HttpContext context)
+					throws HttpException, IOException {
+				super.process(response, context);
+			}
+		});
+		httpproc.addInterceptor(new ResponseConnControl() {
+			@Override
+			public void process(HttpResponse response, HttpContext context)
+					throws HttpException, IOException {
+				super.process(response, context);
+			}
+		});
 
 		httpService = new HttpService(httpproc,
 				new DefaultConnectionReuseStrategy(),
@@ -138,6 +159,10 @@ public class WebServer extends Thread {
 						e.printStackTrace();
 						AppLog.logDebug("Webserver",
 								"eating up client closed connection error");
+					} catch (SocketException e) {
+						e.printStackTrace();
+						AppLog.logDebug("Webserver",
+								"eating up socket closed exception");
 					}
 
 				}

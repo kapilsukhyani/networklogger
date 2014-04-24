@@ -1,15 +1,22 @@
 package com.enlighten.transparentproxy.webserver;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.ContentProducer;
 import org.apache.http.entity.EntityTemplate;
 import org.apache.http.protocol.HttpContext;
@@ -20,8 +27,6 @@ import android.net.http.AndroidHttpClient;
 
 import com.enlighten.transparentproxy.R;
 import com.enlighten.transparentproxy.utils.Utility;
-
-
 
 public class HomePageHandler implements HttpRequestHandler {
 	private Context context = null;
@@ -38,7 +43,6 @@ public class HomePageHandler implements HttpRequestHandler {
 
 		if (null != httpResponse) {
 
-			
 			Header[] headers = httpResponse.getAllHeaders();
 
 			for (Header header : headers) {
@@ -83,21 +87,71 @@ public class HomePageHandler implements HttpRequestHandler {
 
 	private HttpResponse forwardRequest(HttpRequest request) {
 		HttpResponse httpResponse = null;
-
 		AndroidHttpClient httpClient = AndroidHttpClient.newInstance(request
 				.getHeaders("User-Agent")[0].getValue());
 		try {
-			httpResponse = httpClient.execute(
-					new HttpHost(request.getHeaders("HOST")[0].getValue(),443),
-					request);
+
+		
+
+			HttpUriRequest uriRequest = null;
+			if (request.getRequestLine().getMethod().equals("GET")) {
+
+				uriRequest = new HttpGet("https://"
+						+ request.getHeaders("HOST")[0].getValue()
+						+ request.getRequestLine().getUri());
+
+			} else if ((request.getRequestLine().getMethod().equals("POST"))) {
+				HttpPost post = new HttpPost("https://"
+						+ request.getHeaders("HOST")[0].getValue()
+						+ request.getRequestLine().getUri());
+				
+				post.setEntity(((HttpEntityEnclosingRequest) request).getEntity());
+				uriRequest =post;
+
+			}
+
+			for (Header header : request.getAllHeaders()) {
+				if (!header.getName().equalsIgnoreCase("content-length")) {
+					uriRequest.addHeader(header);
+				}
+			}
+
+			
+
+			httpResponse = httpClient.execute(uriRequest);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			//TODO need to identify why SocketExcetion : socket closed is thrown when client is closed 
+//			httpClient.close();
+		}
+
+		return httpResponse;
+	}
+
+	private String streamToString(InputStream stream) {
+		BufferedReader reader = new BufferedReader(
+				new InputStreamReader(stream));
+		StringBuilder builder = new StringBuilder();
+		String line;
+		try {
+			while ((line = reader.readLine()) != null) {
+				builder.append(line + "\n");
+			}
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
-			httpClient.close();
+			try {
+				stream.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 
-		return httpResponse;
+		return builder.toString();
 	}
 
 }

@@ -19,7 +19,7 @@ public class Constants {
 
 	public static final int IPTABLES_INIT_COMMAND_ID = 0x2;
 	public static final String IPTABLES_INIT_COMMAND = "iptables -t nat -I OUTPUT -m owner --uid-owner [UID] -j ACCEPT";
-	public static final String SYSTEM_LEVEL_FILTER_COMMAND = "iptables -t nat -A OUTPUT -p 6 --dport 80 -j DNAT --to 127.0.0.1:8080";
+	public static final String SYSTEM_LEVEL_FILTER_COMMAND = "iptables -t nat -A OUTPUT -p 6 --dport 443 -j DNAT --to 127.0.0.1:8080";
 	public static final String Shared_Preferences = "app_preferences";
 	public static final String IPTABLE_INITIATED = "iptable_initiated";
 
