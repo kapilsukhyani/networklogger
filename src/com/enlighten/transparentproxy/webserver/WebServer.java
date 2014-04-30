@@ -1,9 +1,10 @@
 package com.enlighten.transparentproxy.webserver;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -13,10 +14,14 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
+import javax.net.ssl.HandshakeCompletedEvent;
+import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
@@ -149,8 +154,11 @@ public class WebServer extends Thread {
 							}
 						} }, null);
 				sf = sslcontext.getServerSocketFactory();
-				ServerSocket serverSocket = sf.createServerSocket(serverPort,
-						0, InetAddress.getLocalHost());
+				SSLServerSocket serverSocket = (SSLServerSocket) sf
+						.createServerSocket(serverPort, 0,
+								InetAddress.getLocalHost());
+				serverSocket.setNeedClientAuth(false);
+				serverSocket.setWantClientAuth(false);
 				/*
 				 * ServerSocket serverSocket = new ServerSocket(serverPort, 1,
 				 * InetAddress.getLocalHost());
@@ -161,7 +169,17 @@ public class WebServer extends Thread {
 
 				while (isRunning) {
 
-					final Socket socket = serverSocket.accept();
+					final SSLSocket socket = (SSLSocket) serverSocket.accept();
+					socket.addHandshakeCompletedListener(new HandshakeCompletedListener() {
+
+						@Override
+						public void handshakeCompleted(
+								HandshakeCompletedEvent event) {
+
+							System.out.println("@@@   handshake completed  ");
+						}
+					});
+					String data = streamToString(socket.getInputStream());
 
 					DefaultHttpServerConnection serverConnection = new DefaultHttpServerConnection();
 
@@ -238,4 +256,30 @@ public class WebServer extends Thread {
 	public Context getContext() {
 		return context;
 	}
+
+	private String streamToString(InputStream stream) {
+		BufferedReader reader = new BufferedReader(
+				new InputStreamReader(stream));
+		StringBuilder builder = new StringBuilder();
+		String line;
+		try {
+			while ((line = reader.readLine()) != null) {
+				builder.append(line + "\n");
+			}
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			try {
+				stream.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		return builder.toString();
+	}
+
 }
