@@ -6,6 +6,19 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -13,17 +26,28 @@ import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.PlainSocketFactory;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.ContentProducer;
 import org.apache.http.entity.EntityTemplate;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 
 import android.content.Context;
-import android.net.http.AndroidHttpClient;
 
 import com.enlighten.transparentproxy.R;
 import com.enlighten.transparentproxy.utils.Utility;
@@ -87,11 +111,12 @@ public class HomePageHandler implements HttpRequestHandler {
 
 	private HttpResponse forwardRequest(HttpRequest request) {
 		HttpResponse httpResponse = null;
-		AndroidHttpClient httpClient = AndroidHttpClient.newInstance(request
-				.getHeaders("User-Agent")[0].getValue());
+		HttpClient httpClient = getNewHttpClient();
+		/*
+		 * AndroidHttpClient httpClient = AndroidHttpClient.newInstance(request
+		 * .getHeaders("User-Agent")[0].getValue());
+		 */
 		try {
-
-		
 
 			HttpUriRequest uriRequest = null;
 			if (request.getRequestLine().getMethod().equals("GET")) {
@@ -104,9 +129,10 @@ public class HomePageHandler implements HttpRequestHandler {
 				HttpPost post = new HttpPost("https://"
 						+ request.getHeaders("HOST")[0].getValue()
 						+ request.getRequestLine().getUri());
-				
-				post.setEntity(((HttpEntityEnclosingRequest) request).getEntity());
-				uriRequest =post;
+
+				post.setEntity(((HttpEntityEnclosingRequest) request)
+						.getEntity());
+				uriRequest = post;
 
 			}
 
@@ -116,14 +142,13 @@ public class HomePageHandler implements HttpRequestHandler {
 				}
 			}
 
-			
-
 			httpResponse = httpClient.execute(uriRequest);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
-			//TODO need to identify why SocketExcetion : socket closed is thrown when client is closed 
-//			httpClient.close();
+			// TODO need to identify why SocketExcetion : socket closed is
+			// thrown when client is closed
+			// httpClient.close();
 		}
 
 		return httpResponse;
@@ -152,6 +177,74 @@ public class HomePageHandler implements HttpRequestHandler {
 		}
 
 		return builder.toString();
+	}
+
+	public HttpClient getNewHttpClient() {
+		try {
+			KeyStore trustStore = KeyStore.getInstance(KeyStore
+					.getDefaultType());
+			trustStore.load(null, null);
+
+			SSLSocketFactory sf = new CustomSocketFactory(trustStore);
+			sf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+
+			HttpParams params = new BasicHttpParams();
+			HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
+			HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
+
+			SchemeRegistry registry = new SchemeRegistry();
+			registry.register(new Scheme("http", PlainSocketFactory
+					.getSocketFactory(), 80));
+			registry.register(new Scheme("https", sf, 443));
+
+			ClientConnectionManager ccm = new ThreadSafeClientConnManager(
+					params, registry);
+
+			return new DefaultHttpClient(ccm, params);
+		} catch (Exception e) {
+			return new DefaultHttpClient();
+		}
+	}
+
+	public class CustomSocketFactory extends SSLSocketFactory {
+		SSLContext sslContext = SSLContext.getInstance("TLS");
+
+		public CustomSocketFactory(KeyStore truststore)
+				throws NoSuchAlgorithmException, KeyManagementException,
+				KeyStoreException, UnrecoverableKeyException {
+			super(truststore);
+
+			TrustManager tm = new X509TrustManager() {
+				public void checkClientTrusted(X509Certificate[] chain,
+						String authType) throws CertificateException {
+					System.out.println("@@  client trusted @@");
+				}
+
+				public void checkServerTrusted(X509Certificate[] chain,
+						String authType) throws CertificateException {
+					System.out.println("@@ server trusted @@");
+				}
+
+				public X509Certificate[] getAcceptedIssuers() {
+					System.out.println("@@ getAcceptedIssuers @@");
+					return null;
+				}
+			};
+
+			sslContext.init(null, new TrustManager[] { tm }, null);
+		}
+
+		@Override
+		public Socket createSocket(Socket socket, String host, int port,
+				boolean autoClose) throws IOException, UnknownHostException {
+			return sslContext.getSocketFactory().createSocket(socket, host,
+					port, autoClose);
+		}
+
+		@Override
+		public Socket createSocket() throws IOException {
+			return sslContext.getSocketFactory().createSocket();
+		}
 	}
 
 }

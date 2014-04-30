@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -14,6 +12,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
@@ -23,6 +22,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.ConnectionClosedException;
 import org.apache.http.HttpException;
@@ -136,10 +137,26 @@ public class WebServer extends Thread {
 				kmfactory.init(keystore, "kapilpass".toCharArray());
 				KeyManager[] keymanagers = kmfactory.getKeyManagers();
 				SSLContext sslcontext = SSLContext.getInstance("TLS");
-				sslcontext.init(keymanagers, null, null);
+				sslcontext.init(keymanagers,
+						new TrustManager[] { new X509TrustManager() {
+							public void checkClientTrusted(
+									X509Certificate[] chain, String authType)
+									throws CertificateException {
+							}
+
+							public void checkServerTrusted(
+									X509Certificate[] chain, String authType)
+									throws CertificateException {
+							}
+
+							public X509Certificate[] getAcceptedIssuers() {
+								return null;
+							}
+						} }, null);
 				sf = sslcontext.getServerSocketFactory();
-				SSLServerSocket serverSocket = (SSLServerSocket) sf.createServerSocket(serverPort,
-						0, InetAddress.getLocalHost());
+				SSLServerSocket serverSocket = (SSLServerSocket) sf
+						.createServerSocket(serverPort, 0,
+								InetAddress.getLocalHost());
 				serverSocket.setNeedClientAuth(false);
 				serverSocket.setWantClientAuth(false);
 				/*
@@ -152,13 +169,14 @@ public class WebServer extends Thread {
 
 				while (isRunning) {
 
-					final SSLSocket socket =  (SSLSocket)serverSocket.accept();
+					final SSLSocket socket = (SSLSocket) serverSocket.accept();
 					socket.addHandshakeCompletedListener(new HandshakeCompletedListener() {
-						
-						@Override
-						public void handshakeCompleted(HandshakeCompletedEvent event) {
 
-							System.out.println("@@@   handshake completed  " );
+						@Override
+						public void handshakeCompleted(
+								HandshakeCompletedEvent event) {
+
+							System.out.println("@@@   handshake completed  ");
 						}
 					});
 					String data = streamToString(socket.getInputStream());
@@ -238,7 +256,7 @@ public class WebServer extends Thread {
 	public Context getContext() {
 		return context;
 	}
-	
+
 	private String streamToString(InputStream stream) {
 		BufferedReader reader = new BufferedReader(
 				new InputStreamReader(stream));
