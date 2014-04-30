@@ -11,11 +11,14 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.ConnectionClosedException;
 import org.apache.http.HttpException;
@@ -129,7 +132,22 @@ public class WebServer extends Thread {
 				kmfactory.init(keystore, "kapilpass".toCharArray());
 				KeyManager[] keymanagers = kmfactory.getKeyManagers();
 				SSLContext sslcontext = SSLContext.getInstance("TLS");
-				sslcontext.init(keymanagers, null, null);
+				sslcontext.init(keymanagers,
+						new TrustManager[] { new X509TrustManager() {
+							public void checkClientTrusted(
+									X509Certificate[] chain, String authType)
+									throws CertificateException {
+							}
+
+							public void checkServerTrusted(
+									X509Certificate[] chain, String authType)
+									throws CertificateException {
+							}
+
+							public X509Certificate[] getAcceptedIssuers() {
+								return null;
+							}
+						} }, null);
 				sf = sslcontext.getServerSocketFactory();
 				ServerSocket serverSocket = sf.createServerSocket(serverPort,
 						0, InetAddress.getLocalHost());
