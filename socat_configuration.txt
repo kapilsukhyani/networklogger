@@ -1,0 +1,27 @@
+Configuring iptables and socat for mitm
+IPtables command
+iptables -t nat -I OUTPUT -p 6 --dport 443 -m owner --uid-owner u0_i15 -j DNAT --to 192.168.2.30:4443
+
+Above iptables command create a nat rule in output chain of nat table. The rule is transferring the traffic of application with UID "u0_i15"  (chrome browser in my case, can be identified by
+executing ps | grep com.beta.chrome) to the applicatin listening on 192.168.2.30:4443 (where 192.168.2.30 is ip of wlan0 interface of my own device and socat is listening on 443).
+Socat is the utility which listening incoming traffic on  192.168.2.30:4443.
+
+
+It was important to write a iptable rule to only track network traffic of specific application (identified by user id), otherwise if iptable rule is created
+to transfer all the traffic from all the applications to the socat. socat will create different process to listen incoming traffic for every application trying to communicate on 443 tcp protocol.
+Which would impact the performance of device alot.
+
+
+Socat command to listen and transfer the traffic to destination server:
+socat -v openssl-listen:4443,reuseaddr,verify=0,cert=/data/local/tmpcerts/
+alldata_server.crt,key=/data/local/tmpcerts/server.key,cafile=/data/local/tmpcer
+ts/ca.crt,debug,fork openssl:repairinfo.beta.alldata.com:443,debug,verify=0,capa
+th=/system/etc/security/cacerts
+
+
+In this case socat is trying to intercept the traffic targeted for specific server (repairinfo.beta.alldata.com in my case) because specific server fake certificate needs to be created
+. In my case fake server certificate and key are ,cert=/data/local/tmpcerts/alldata_server.crt and key=/data/local/tmpcerts/server.key respectively. And the incoming traffic
+ is transferred to original destination by a forked process "fork openssl:repairinfo.beta.alldata.com:443,debug,verify=0,capath=/system/etc/security/cacerts". 
+ 
+ 
+ 

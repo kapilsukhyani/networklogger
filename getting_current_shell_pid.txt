@@ -1,0 +1,2 @@
+getting pid of current shell
+run $$
