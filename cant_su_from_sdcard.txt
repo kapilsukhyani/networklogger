@@ -1,0 +1,16 @@
+why cant su be executed from sdcard
+
+1. sdcard is mounted with noexec flag that means no executable cab be executed from sdcard and that is for obvious reasons.
+try running mount | grep /mnt/sdcard
+2. su needs setuid flag set before it can be executed. setuid flag gives the user executing the executable to do things which he is not privileged to do.
+Like su cannot be executed by everybody as a normal user until setuid bit is set on it, which itself requires a root privileges. Now how can anybody
+set setuid on su itself, the answer to that question is by using an exploit for that  android version. What usually exploit does is, it forces already privileged
+application/binary on system to setuid flag on just loaded su binary and store it in /system/bin or any bin directory where it will be added in path.
+And can be executed from anywhere.
+
+One of the example where normal user cannot run a executable directly 
+chmod,
+mount -o
+
+before running these command user has to get root privileges that is why we call su before executing them its like setting setuid flag to every binary
+which we are going to run after running su.

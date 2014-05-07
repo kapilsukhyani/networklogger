@@ -1,0 +1,44 @@
+Natcat linux utility
+
+Its a utility which runs a server on a particular port and cats the whatever requests it gets
+
+A very nice article can be found here 
+
+"http://lifehacker.com/202271/roll-your-own-servers-with-netcat"\
+
+
+It can be used to implement may use cases on of them is copying file from one system to another and it can achieved as
+
+Machine one (server)
+"nc is natcat in linux"
+busybox nc -l -p 8081 > destination_file_name //listens for incoming request and write the content into destination_file
+
+
+Machine two (client (has to copy the file on server))
+
+cat file_to_be_copied |  nc <machine_one_ip> 8081 // cat's source file and pipe's the output to natcat
+
+
+I used it to debug iptables functionality. I wanted to check the request which was being forwarded to specified destination after performing DNAT 
+
+
+Socat
+
+its a tool which can be used to intercept ssl session by breaking the client-server conection and acting as a bridge in between
+. it can listen on a particlar port for incoming ssl request and then transfer the same request (bridge) to actual server.
+
+
+A fake server certificate can be created authorized by fake ca cert created by openssl and then can used with socat so that 
+ lient can create a valid ssl session with it and then socat will just log the request and send the original request to original destination
+which can be configured while calling socat
+
+a reference tutorial can be found at
+"http://www.myhowto.org/java/81-intercepting-and-decrypting-ssl-communications-between-android-phone-and-3rd-party-server/"
+
+More can be read of official socat linux utility documentation
+
+
+
+Socat examples :
+http://www.dest-unreach.org/socat/doc/socat.html#OPTION_FORK
+

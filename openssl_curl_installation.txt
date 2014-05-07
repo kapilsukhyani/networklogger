@@ -1,0 +1,4 @@
+Installing openssl and curl on android
+
+
+"http://forum.xda-developers.com/showthread.php?t=2362386"
