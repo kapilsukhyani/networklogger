@@ -2,6 +2,10 @@ Configuring iptables and socat for mitm
 IPtables command
 iptables -t nat -I OUTPUT -p 6 --dport 443 -m owner --uid-owner u0_i15 -j DNAT --to 192.168.2.30:4443
 
+To target specific destination with -d param
+iptables -t nat -I OUTPUT -d 169.198.203.158 -p 6 --dport 443  -m owner --uid-owner u0_a154 -j DNAT --to 127.0.0.1:4443
+
+
 Above iptables command create a nat rule in output chain of nat table. The rule is transferring the traffic of application with UID "u0_i15"  (chrome browser in my case, can be identified by
 executing ps | grep com.beta.chrome) to the applicatin listening on 192.168.2.30:4443 (where 192.168.2.30 is ip of wlan0 interface of my own device and socat is listening on 443).
 Socat is the utility which listening incoming traffic on  192.168.2.30:4443.
@@ -17,6 +21,17 @@ socat -v openssl-listen:4443,reuseaddr,verify=0,cert=/data/local/tmpcerts/
 alldata_server.crt,key=/data/local/tmpcerts/server.key,cafile=/data/local/tmpcer
 ts/ca.crt,debug,fork openssl:repairinfo.beta.alldata.com:443,debug,verify=0,capa
 th=/system/etc/security/cacerts
+
+To store requests and responses to a file:
+socat -v openssl-listen:4443,reuseaddr,verify=0,debug,cert=/data/local/tmpcerts/alldata_server.crt,
+key=/data/local/tmpcerts/server.key,cafile=/data/local/tmpcerts/ca.crt,
+fork SYSTEM:'tee /data/local/tmpcerts/requests.log | socat - "openssl:repairinfo.beta.alldata.com:443,verify=0,debug,capath=/system/etc/security/cacerts" | tee /data/local/tmpcerts/responses.log'
+
+
+It uses a command called tee. which shows and stores any command out at the same time
+e.g. 
+ls | tee files.txt
+The above example would print the output of ls on stdout and also stores to files.txt 
 
 
 In this case socat is trying to intercept the traffic targeted for specific server (repairinfo.beta.alldata.com in my case) because specific server fake certificate needs to be created
