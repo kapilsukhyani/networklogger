@@ -55,6 +55,7 @@ public final class R {
         public static final int messagesend=0x7f050002;
         public static final int nodirlisting=0x7f050003;
         public static final int notfound=0x7f050004;
+        public static final int socat=0x7f050005;
     }
     public static final class string {
         public static final int about_title=0x7f070010;

@@ -31,7 +31,6 @@ import android.widget.Toast;
 import com.enlighten.transparentproxy.app.AppLog;
 import com.enlighten.transparentproxy.app.ProxyApplication;
 import com.enlighten.transparentproxy.constants.Constants;
-import com.enlighten.transparentproxy.service.HTTPService;
 import com.enlighten.transparentproxy.webserver.WebServer;
 import com.stericson.RootTools.RootTools;
 
@@ -217,18 +216,23 @@ public class AppList extends ListActivity implements OnItemClickListener {
 					}).create();
 			d.show();
 		} else {
-			initView();
-			initCommand();
 
+			init();
 		}
 	}
 
 	private void initCommand() {
 		if (((ProxyApplication) getApplication())
 				.initIPTable(IpTableInitHandler)) {
-//			startService(new Intent(AppList.this, HTTPService.class));
+			// startService(new Intent(AppList.this, HTTPService.class));
 			startSrver();
 		}
+	}
+
+	private void init() {
+		initView();
+		// initCommand();
+		checkRequiredBinaries();
 	}
 
 	private void initView() {
@@ -236,6 +240,33 @@ public class AppList extends ListActivity implements OnItemClickListener {
 		loader = new AppInfoLoader();
 		loader.execute((Void) null);
 		getListView().setOnItemClickListener(this);
+	}
+
+	private void checkRequiredBinaries() {
+		// assuming that the permission on that file is proper if it is found
+		// via findBinay, although there is a method
+		// checkUtil to check a binary and its permission together but it
+		// returns false if permissions are not proper and
+		// gives the impression that binary itself is not present
+		if (RootTools.findBinary(Constants.OPENSSL)) {
+			AppLog.logDebug(TAG, "Found openssl");
+		} else {
+			AppLog.logDebug(TAG, "openssl not found, installing binary");
+			// install the binary as it is not available
+		}
+
+		if (RootTools.findBinary(Constants.SOCAT)) {
+			AppLog.logDebug(TAG, "Found socat");
+		} else {
+			AppLog.logDebug(TAG, "socat not found, installing binary");
+			// install the binary as it is not available
+			if (!RootTools.hasBinary(this, Constants.SOCAT)) {
+
+				RootTools.installBinary(this, R.raw.socat, "socat");
+			}
+
+		}
+
 	}
 
 	public Handler IpTableInitHandler = new Handler() {
@@ -259,7 +290,8 @@ public class AppList extends ListActivity implements OnItemClickListener {
 			} else if (msg.what == Constants.SYSTEM_LEVEL_FILTER_ENABLED_MESSAGE_ID) {
 				if (bundle.getBoolean(Constants.FILTER_ENABLED)) {
 					Log.d(TAG, "Starting server");
-//					startService(new Intent(AppList.this, HTTPService.class));
+					// startService(new Intent(AppList.this,
+					// HTTPService.class));
 					startSrver();
 
 				}

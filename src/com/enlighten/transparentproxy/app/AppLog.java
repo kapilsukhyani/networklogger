@@ -1,12 +1,17 @@
 package com.enlighten.transparentproxy.app;
 
+import com.stericson.RootTools.RootTools;
+
 import android.util.Log;
 
 public class AppLog {
 	private static final String APP_TAG = "TransparentProxy";
 	private static boolean debugEnabled = true;
 	
-	
+	static
+	{
+		RootTools.debugMode = true;
+	}
 	public static int logInfo(String message){
 		return Log.i(APP_TAG,message);
 	}

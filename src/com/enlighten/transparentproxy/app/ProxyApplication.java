@@ -44,6 +44,7 @@ public class ProxyApplication extends Application {
 
 			}
 		});
+		
 	}
 
 	@Override
