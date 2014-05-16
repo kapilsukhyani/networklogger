@@ -1,19 +1,23 @@
 package com.enlighten.transparentproxy;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -27,6 +31,7 @@ import android.widget.Toast;
 
 import com.enlighten.transparentproxy.app.AppLog;
 import com.enlighten.transparentproxy.constants.Constants;
+import com.enlighten.transparentproxy.utils.Utility;
 import com.stericson.RootTools.RootTools;
 
 public class AppList extends ListActivity implements OnItemClickListener {
@@ -218,7 +223,78 @@ public class AppList extends ListActivity implements OnItemClickListener {
 
 	private void init() {
 		initView();
-		checkRequiredBinaries();
+		initFiles();
+
+	}
+
+	private void initFiles() {
+		(new AsyncTask<Void, Void, Void>() {
+			Dialog progressDialog;
+
+			@Override
+			protected void onPreExecute() {
+				super.onPreExecute();
+				progressDialog = ProgressDialog.show(AppList.this,
+						"Initializing", "Pease wait a second");
+			}
+
+			@Override
+			protected Void doInBackground(Void... params) {
+				if (!PreferenceManager
+						.getDefaultSharedPreferences(AppList.this).getBoolean(
+								Constants.APPLICAITON_INITIALIZED, false)) {
+
+					File file = getFilesDir();
+					if (!file.exists()) {
+						file.mkdir();
+					}
+
+					File opensslDir = new File(
+							Constants.OPENSSL_WORKING_DIRECTORY_PATH);
+
+					if (!opensslDir.exists()) {
+						opensslDir.mkdir();
+
+					}
+
+					File rFile = new File(Constants.CA_CERT_FILE_PATH);
+					Utility.copyStreamToFile(
+							getResources().openRawResource(R.raw.ca), rFile);
+
+					rFile = new File(Constants.CA_KEY_FILE_PATH);
+					Utility.copyStreamToFile(
+							getResources().openRawResource(R.raw.cauth), rFile);
+
+					rFile = new File(Constants.SERVER_KEY_FILE_PATH);
+					Utility.copyStreamToFile(
+							getResources().openRawResource(R.raw.server), rFile);
+
+					rFile = new File(Constants.SERIAL_FILE_PATH);
+					Utility.copyStreamToFile(
+							getResources().openRawResource(R.raw.serial), rFile);
+
+					SharedPreferences preferences = PreferenceManager
+							.getDefaultSharedPreferences(AppList.this);
+
+					preferences
+							.edit()
+							.putBoolean(Constants.APPLICAITON_INITIALIZED, true)
+							.commit();
+
+				}
+
+				checkRequiredBinaries();
+
+				return null;
+			}
+
+			@Override
+			protected void onPostExecute(Void result) {
+				super.onPostExecute(result);
+				progressDialog.dismiss();
+			}
+		}).execute((Void) null);
+
 	}
 
 	private void initView() {

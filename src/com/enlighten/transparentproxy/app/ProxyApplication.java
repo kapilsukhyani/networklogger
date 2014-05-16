@@ -1,17 +1,12 @@
 package com.enlighten.transparentproxy.app;
 
-import java.io.File;
 import java.lang.Thread.UncaughtExceptionHandler;
 
 import android.app.Application;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
-import com.enlighten.transparentproxy.R;
 import com.enlighten.transparentproxy.constants.Constants;
-import com.enlighten.transparentproxy.utils.Utility;
 
 public class ProxyApplication extends Application {
 
@@ -41,11 +36,6 @@ public class ProxyApplication extends Application {
 		// It has to be called before app init as all paths are defined there
 		Constants.initPaths(getFilesDir().getAbsolutePath());
 
-		if (!PreferenceManager.getDefaultSharedPreferences(this).getBoolean(
-				Constants.APPLICAITON_INITIALIZED, false)) {
-			init();
-		}
-
 	}
 
 	@Override
@@ -56,46 +46,6 @@ public class ProxyApplication extends Application {
 	@Override
 	public void onTerminate() {
 		super.onTerminate();
-	}
-
-	
-
-	private void init() {
-
-		File file = getFilesDir();
-		if (!file.exists()) {
-			file.mkdir();
-		}
-
-		File opensslDir = new File(Constants.OPENSSL_WORKING_DIRECTORY_PATH);
-
-		if (!opensslDir.exists()) {
-			opensslDir.mkdir();
-
-		}
-
-		File rFile = new File(Constants.CA_CERT_FILE_PATH);
-		Utility.copyStreamToFile(getResources().openRawResource(R.raw.ca),
-				rFile);
-
-		rFile = new File(Constants.CA_KEY_FILE_PATH);
-		Utility.copyStreamToFile(getResources().openRawResource(R.raw.cauth),
-				rFile);
-
-		rFile = new File(Constants.SERVER_KEY_FILE_PATH);
-		Utility.copyStreamToFile(getResources().openRawResource(R.raw.server),
-				rFile);
-
-		rFile = new File(Constants.SERIAL_FILE_PATH);
-		Utility.copyStreamToFile(getResources().openRawResource(R.raw.serial),
-				rFile);
-
-		SharedPreferences preferences = PreferenceManager
-				.getDefaultSharedPreferences(this);
-
-		preferences.edit().putBoolean(Constants.APPLICAITON_INITIALIZED, true)
-				.commit();
-
 	}
 
 }
