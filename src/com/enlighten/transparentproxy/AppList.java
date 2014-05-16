@@ -6,7 +6,6 @@ import java.util.List;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ListActivity;
-import android.app.NotificationManager;
 import android.app.SearchManager;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
@@ -15,8 +14,6 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -29,9 +26,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.enlighten.transparentproxy.app.AppLog;
-import com.enlighten.transparentproxy.app.ProxyApplication;
 import com.enlighten.transparentproxy.constants.Constants;
-import com.enlighten.transparentproxy.webserver.WebServer;
 import com.stericson.RootTools.RootTools;
 
 public class AppList extends ListActivity implements OnItemClickListener {
@@ -221,17 +216,8 @@ public class AppList extends ListActivity implements OnItemClickListener {
 		}
 	}
 
-	private void initCommand() {
-		if (((ProxyApplication) getApplication())
-				.initIPTable(IpTableInitHandler)) {
-			// startService(new Intent(AppList.this, HTTPService.class));
-			startSrver();
-		}
-	}
-
 	private void init() {
 		initView();
-		// initCommand();
 		checkRequiredBinaries();
 	}
 
@@ -267,50 +253,6 @@ public class AppList extends ListActivity implements OnItemClickListener {
 
 		}
 
-	}
-
-	public Handler IpTableInitHandler = new Handler() {
-		public void handleMessage(android.os.Message msg) {
-			Bundle bundle = msg.getData();
-			if (msg.what == Constants.IPTABLE_INITIATED_MESSAGE_ID) {
-
-				if (bundle.getBoolean(Constants.IPTABLE_INITIATED)) {
-					Toast.makeText(getApplicationContext(),
-							"Network filter got set", Toast.LENGTH_LONG).show();
-
-					((ProxyApplication) getApplication())
-							.initAppLevelFilter(IpTableInitHandler);
-
-				} else {
-					String reason = bundle.getString(Constants.FAILURE_REASON);
-					Toast.makeText(getApplicationContext(),
-							reason + ", exiting", Toast.LENGTH_LONG).show();
-					AppList.this.finish();
-				}
-			} else if (msg.what == Constants.SYSTEM_LEVEL_FILTER_ENABLED_MESSAGE_ID) {
-				if (bundle.getBoolean(Constants.FILTER_ENABLED)) {
-					Log.d(TAG, "Starting server");
-					// startService(new Intent(AppList.this,
-					// HTTPService.class));
-					startSrver();
-
-				}
-
-			}
-
-		};
-	};
-
-	private WebServer server;
-
-	private void startSrver() {
-		if (server == null) {
-			server = new WebServer(
-					getApplicationContext(),
-					(NotificationManager) getSystemService(NOTIFICATION_SERVICE));
-		}
-
-		server.startThread();
 	}
 
 }
