@@ -95,9 +95,11 @@ public class Utility {
 		FileOutputStream fos = null;
 		BufferedInputStream bis = null;
 		try {
-			if (!file.exists()) {
-				file.createNewFile();
+			if (file.exists()) {
+				file.delete();
 			}
+			
+			file.createNewFile();
 			fos = new FileOutputStream(file);
 			bis = new BufferedInputStream(stream);
 

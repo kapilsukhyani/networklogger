@@ -11,6 +11,7 @@ public class Constants {
 	public static final String PREF_SERVER_PORT = "prefServerPort";
 	public static final String UID = "[UID]";
 	public static final String DESTINATION_IP = "[DESTINATION_IP]";
+	public static final String CUSTOM_CN = "[CUSTOM_CN]";
 
 	public static final String Shared_Preferences = "app_preferences";
 	public static final String IPTABLE_INITIATED = "iptable_initiated";
@@ -116,13 +117,16 @@ public class Constants {
 				+ " | socat - openssl:[TARGET_SERVER]:443,verify=0,debug,capath="
 				+ SYSTEM_CACERTS_PATH + " | tee " + RESPONSES_FILE_PATH + "'";
 
+		//this comand will not ask for ca key password as non secure(password less key) is used
 		OPENSSL_CREATE_CERTIFICATE_COMMAND = "openssl x509 -req -days 365 -in "
 				+ SERVER_CSR_FILE_PATH + " -CA " + CA_CERT_FILE_PATH
 				+ " -CAkey " + CA_KEY_FILE_PATH + " -CAserial "
 				+ SERIAL_FILE_PATH + " -out " + SERVER_CERT_FILE_PATH;
 
+		// this command would not ask for anything from user before creating csr as everything is provided in the command as well
+		// to kepp it not interactive and the private key used itself is a non secure key(without any password)
 		OPENSSL_CREATE_SERVER_CSR_COMMAND = "openssl req -new -key "
-				+ SERVER_KEY_FILE_PATH + " -out " + SERVER_CSR_FILE_PATH;
+				+ SERVER_KEY_FILE_PATH + " -out " + SERVER_CSR_FILE_PATH + " -subj '/C=IN/ST=MAHA/L=PUNE/O=Enlighten/OU=Development/CN=[CUSTOM_CN]'";
 
 	}
 }
