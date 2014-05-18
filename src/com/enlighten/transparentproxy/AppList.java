@@ -183,6 +183,11 @@ public class AppList extends ListActivity implements OnItemClickListener {
 			Toast.makeText(this, "name " + appInfo.uid, Toast.LENGTH_SHORT)
 					.show();
 
+			Intent configureLoggerIntent = new Intent(AppList.this,
+					ConfigureLogger.class);
+			configureLoggerIntent.putExtra(Constants.APP_INFO, appInfo);
+			startActivity(configureLoggerIntent);
+
 		}
 	}
 
@@ -247,6 +252,11 @@ public class AppList extends ListActivity implements OnItemClickListener {
 					File file = getFilesDir();
 					if (!file.exists()) {
 						file.mkdir();
+					}
+
+					File logDir = new File(Constants.TRAFFIC_LOG_PATH);
+					if (!logDir.exists()) {
+						logDir.mkdir();
 					}
 
 					File opensslDir = new File(

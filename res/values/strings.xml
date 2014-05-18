@@ -48,6 +48,10 @@
 	<string name="available_apps"> Installed Applications</string>
 	<string name="root_not_available">Your device is not rooted. App needs root access to run</string>
     <string name="root_denied">Root access is denied to the application, can not proceed further wihtout root </string>
+    
+    <!-- configure activity -->
+    <string name="domain_name">Domain name to hack</string>
+    <string name="start_hack">Start Hacking</string>
 	
 
 </resources>

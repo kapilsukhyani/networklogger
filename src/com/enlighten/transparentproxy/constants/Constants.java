@@ -11,10 +11,11 @@ public class Constants {
 	public static final String PREF_SERVER_PORT = "prefServerPort";
 	public static final String UID = "[UID]";
 	public static final String DESTINATION_IP = "[DESTINATION_IP]";
-	public static final String CUSTOM_CN = "[CUSTOM_CN]";
+	public static final String DOMAIN_NAME = "[DOMAIN_NAME]";
 
 	public static final String Shared_Preferences = "app_preferences";
 	public static final String IPTABLE_INITIATED = "iptable_initiated";
+	public static final String PREVIOUS_DOMAIN_NAMES = "domain_names";
 	public static final String APPLICAITON_INITIALIZED = "applciation_initialized";
 
 	public static final int IPTABLE_INITIATED_MESSAGE_ID = 0x1;
@@ -53,25 +54,32 @@ public class Constants {
 	public static final String SERVER_KEY_FILE_NAME = "server.key";
 	public static final String SERVER_CERT_FILE_NAME = "server.crt";
 	public static final String REQUESTS_FILE_NAME = "requests.log";
-	public static final String RESPONSES_FILE_NAME = "reponses.log";
+	public static final String RESPONSES_FILE_NAME = "responses.log";
 	public static final String SERIAL_FILE_NAME = "serial.txt";
+
+	public static final int PS_COMMAND_ID = 0x1;
+	public static final int IPTABLES_INIT_COMMAND_ID = 0x2;
+	public static final int IPTABLES_NAT_CLEAR_COMMAND_ID = 0x3;
+	public static final int IPTABLES_APP_LEVEL_FILTER_COMMAND_ID = 0x4;
+	public static final int GENERATE_FAKE_SERVER_CSR_COMAND_ID = 0x5;
+	public static final int GENERATE_FAKE_SERVER_CRT_COMMAND_ID = 0x6;
+	public static final int CONFIGURE_SOCAT_COMMAND_ID = 0x7;
 
 	public static final int DEFAULT_SERVER_PORT = 8080;
 
 	public static final String APP_OWNER = "user_id";
-	public static final int PS_COMMAND_ID = 0x1;
+
 	public static final String PS_COMMAND = "ps | grep com.enlighten.transparentproxy";
 
-	public static final int IPTABLES_INIT_COMMAND_ID = 0x2;
 	public static final String IPTABLES_INIT_COMMAND = "iptables -t nat -I OUTPUT -m owner --uid-owner [UID] -j ACCEPT";
 	public static final String SYSTEM_LEVEL_FILTER_COMMAND = "iptables -t nat -A OUTPUT -p 6 --dport 443 -j DNAT --to 127.0.0.1:8080";
 	// redirects tcp packets targeted to a system identified by [DESTINATION_IP]
 	// and port 443 (https) from an app with uid identified by [UID] to
 	// the service listening at 127.0.0.1:4443 i.e. socat in our case
 	public static final String IPTABLES_APP_LEVEL_FILTER_COMMAND = "iptables -t nat -I OUTPUT -p 6 --dport 443 -d [DESTINATION_IP] -m owner --uid-owner [UID] -j DNAT --to 127.0.0.1:4443";
-	public static final String IPTABLES_NAT_TABLE_CLEAR_COMMAND = "iptables -t nat -F";
+	public static final String IPTABLES_NAT_TABLE_CLEAR_COMMAND = "iptables -t nat -F OUTPUT";
 
-	
+	public static final String APP_INFO = "app_info";
 
 	public static String SOCAT_TRANSPARENT_PROXY_COMMAND;
 
@@ -112,21 +120,27 @@ public class Constants {
 				+ SERVER_KEY_FILE_PATH
 				+ ",cafile="
 				+ CA_CERT_FILE_PATH
-				+ "debug,fork SYSTEM:'tee "
+				+ ",debug,fork SYSTEM:'tee "
 				+ REQUESTS_FILE_PATH
-				+ " | socat - openssl:[TARGET_SERVER]:443,verify=0,debug,capath="
-				+ SYSTEM_CACERTS_PATH + " | tee " + RESPONSES_FILE_PATH + "'";
+				+ " | socat - \"openssl:[DOMAIN_NAME]:443,verify=0,debug,capath="
+				+ SYSTEM_CACERTS_PATH + "\" | tee " + RESPONSES_FILE_PATH + "'";
 
-		//this comand will not ask for ca key password as non secure(password less key) is used
+		// this comand will not ask for ca key password as non secure(password
+		// less key) is used
 		OPENSSL_CREATE_CERTIFICATE_COMMAND = "openssl x509 -req -days 365 -in "
 				+ SERVER_CSR_FILE_PATH + " -CA " + CA_CERT_FILE_PATH
 				+ " -CAkey " + CA_KEY_FILE_PATH + " -CAserial "
 				+ SERIAL_FILE_PATH + " -out " + SERVER_CERT_FILE_PATH;
 
-		// this command would not ask for anything from user before creating csr as everything is provided in the command as well
-		// to kepp it not interactive and the private key used itself is a non secure key(without any password)
+		// this command would not ask for anything from user before creating csr
+		// as everything is provided in the command as well
+		// to kepp it not interactive and the private key used itself is a non
+		// secure key(without any password)
 		OPENSSL_CREATE_SERVER_CSR_COMMAND = "openssl req -new -key "
-				+ SERVER_KEY_FILE_PATH + " -out " + SERVER_CSR_FILE_PATH + " -subj '/C=IN/ST=MAHA/L=PUNE/O=Enlighten/OU=Development/CN=[CUSTOM_CN]'";
+				+ SERVER_KEY_FILE_PATH
+				+ " -out "
+				+ SERVER_CSR_FILE_PATH
+				+ " -subj '/C=IN/ST=MAHA/L=PUNE/O=Enlighten/OU=Development/CN=[DOMAIN_NAME]'";
 
 	}
 }
