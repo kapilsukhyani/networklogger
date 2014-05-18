@@ -20,6 +20,7 @@ import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.enlighten.transparentproxy.app.AppLog;
@@ -28,12 +29,13 @@ import com.stericson.RootTools.RootTools;
 import com.stericson.RootTools.execution.CommandCapture;
 
 public class ConfigureLogger extends Activity implements OnClickListener {
-	private Button hackButton;
+	private Button startHack, stopHack;
 	private AutoCompleteTextView domainName;
 	private static final String TAG = "ConfigureLogger";
 	private String hostAddress;
 	private ApplicationInfo appInfo;
 	private Dialog setupProgressDialog;
+	private TextView console;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +57,12 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 						android.R.layout.simple_dropdown_item_1line, names));
 			}
 
-			hackButton = (Button) findViewById(R.id.start_hack);
-			hackButton.setOnClickListener(this);
+			startHack = (Button) findViewById(R.id.start_hack);
+			startHack.setOnClickListener(this);
+			stopHack = (Button) findViewById(R.id.stop_hack);
+			stopHack.setOnClickListener(this);
+
+			console = (TextView) findViewById(R.id.console);
 		} else {
 			Toast.makeText(this, "No application selected to be debugged",
 					Toast.LENGTH_LONG).show();
@@ -75,6 +81,11 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 			} else {
 				startHacking();
 			}
+
+			break;
+
+		case R.id.stop_hack:
+			stopHacking();
 
 			break;
 
@@ -97,11 +108,9 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 			@Override
 			protected Void doInBackground(Void... params) {
 
-				getIpForDomain();
-				if (TextUtils.isEmpty(domainName.getError())) {
-					clearIPtablesNatTable();
+				if (getIpForDomain()) {
+					killPreviouslyRunnigSocat();
 				}
-
 				return null;
 			}
 
@@ -113,7 +122,8 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 
 	}
 
-	private void getIpForDomain() {
+	private boolean getIpForDomain() {
+		boolean validDomain = true;
 		try {
 			String domain = domainName.getText().toString().trim();
 			InetAddress[] addresses = InetAddress.getAllByName(domain);
@@ -149,6 +159,7 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
+			validDomain = false;
 			runOnUiThread(new Runnable() {
 
 				@Override
@@ -160,6 +171,38 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 			stopProgressDialog();
 
 		}
+		return validDomain;
+	}
+
+	private void killPreviouslyRunnigSocat() {
+
+		CommandCapture killSocatCommand = new CommandCapture(
+				Constants.KILL_SOCAT_COMMAND_ID, Constants.SOCAT_KILL_COMMAND) {
+			@Override
+			public void commandCompleted(int id, int exitcode) {
+				super.commandCompleted(id, exitcode);
+				AppLog.logDebug(TAG, "Killed previously running socat commands");
+				clearIPtablesNatTable();
+			}
+
+			@Override
+			protected void commandFinished() {
+				super.commandFinished();
+			}
+
+			@Override
+			public void commandOutput(int id, String line) {
+				super.commandOutput(id, line);
+			}
+
+			@Override
+			public void commandTerminated(int id, String reason) {
+				super.commandTerminated(id, reason);
+			}
+		};
+
+		runCommand(killSocatCommand);
+
 	}
 
 	private void clearIPtablesNatTable() {
@@ -306,13 +349,15 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 
 		String command = Constants.SOCAT_TRANSPARENT_PROXY_COMMAND.replace(
 				Constants.DOMAIN_NAME, domainName.getText().toString().trim());
+		// run socat for 2 mins
 		CommandCapture socatommand = new CommandCapture(
-				Constants.CONFIGURE_SOCAT_COMMAND_ID, command) {
+				Constants.CONFIGURE_SOCAT_COMMAND_ID,
+				Constants.SOCAT_COMMAND_TIMEOUT, command) {
 			@Override
 			public void commandCompleted(int id, int exitcode) {
 				super.commandCompleted(id, exitcode);
 				AppLog.logDebug(TAG, "Socat configured");
-				stopProgressDialog();
+
 			}
 
 			@Override
@@ -321,19 +366,32 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 			}
 
 			@Override
-			public void commandOutput(int id, String line) {
+			public void commandOutput(int id, final String line) {
 				super.commandOutput(id, line);
 				AppLog.logDebug(TAG, "hacked::: " + line);
+				runOnUiThread(new Runnable() {
+
+					@Override
+					public void run() {
+						console.setText(console.getText() + " \n" + line);
+
+					}
+				});
+
 			}
 
 			@Override
 			public void commandTerminated(int id, String reason) {
 				super.commandTerminated(id, reason);
+				showToastOnUiThread("socat process terminated");
+
 			}
 
 		};
 
 		runCommand(socatommand);
+
+		stopProgressDialog();
 
 	}
 
@@ -357,6 +415,43 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 				setupProgressDialog.dismiss();
 			}
 		});
+	}
+
+	@Override
+	protected void onStop() {
+		super.onStop();
+	}
+
+	private void showToastOnUiThread(final String toast) {
+		runOnUiThread(new Runnable() {
+
+			@Override
+			public void run() {
+				Toast.makeText(ConfigureLogger.this, toast, Toast.LENGTH_LONG)
+						.show();
+
+			}
+		});
+	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		stopHacking();
+	}
+
+	private void stopHacking() {
+		CommandCapture commandCapture = new CommandCapture(
+				Constants.STOP_HACKING_COMMAND_ID,
+				Constants.SOCAT_KILL_COMMAND,
+				Constants.IPTABLES_NAT_TABLE_CLEAR_COMMAND) {
+			@Override
+			public void commandCompleted(int id, int exitcode) {
+				super.commandCompleted(id, exitcode);
+				AppLog.logDebug(TAG, "Stopped hacking");
+			}
+		};
+		runCommand(commandCapture);
 	}
 
 }

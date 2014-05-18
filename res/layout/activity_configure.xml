@@ -15,12 +15,45 @@
         android:inputType="text"
         android:maxLines="2" />
 
-    <Button
-        android:id="@+id/start_hack"
+    <LinearLayout
+        android:id="@+id/hack_button_container"
         android:layout_width="match_parent"
-        android:layout_height="50dip"
+        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="@android:drawable/alert_light_frame"
-        android:text="@string/start_hack" />
+        android:orientation="horizontal"
+        android:weightSum="2" >
+
+        <Button
+            android:id="@+id/start_hack"
+            android:layout_width="0dp"
+            android:layout_height="50dip"
+            android:layout_weight="1"
+            android:background="@android:drawable/alert_light_frame"
+            android:text="@string/start_hack" />
+
+        <Button
+            android:id="@+id/stop_hack"
+            android:layout_width="0dp"
+            android:layout_height="50dip"
+            android:layout_weight="1"
+            android:background="@android:drawable/alert_light_frame"
+            android:text="@string/stop_hack" />
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/console_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_above="@id/hack_button_container"
+        android:layout_below="@id/domain_name"
+        android:paddingBottom="10dp"
+        android:paddingTop="10dp" >
+
+        <TextView
+            android:id="@+id/console"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="console  output:: \n" />
+    </ScrollView>
 
 </RelativeLayout>

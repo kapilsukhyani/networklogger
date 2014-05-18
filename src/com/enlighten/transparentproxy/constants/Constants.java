@@ -56,6 +56,7 @@ public class Constants {
 	public static final String REQUESTS_FILE_NAME = "requests.log";
 	public static final String RESPONSES_FILE_NAME = "responses.log";
 	public static final String SERIAL_FILE_NAME = "serial.txt";
+	public static final String APP_INFO = "app_info";
 
 	public static final int PS_COMMAND_ID = 0x1;
 	public static final int IPTABLES_INIT_COMMAND_ID = 0x2;
@@ -64,13 +65,13 @@ public class Constants {
 	public static final int GENERATE_FAKE_SERVER_CSR_COMAND_ID = 0x5;
 	public static final int GENERATE_FAKE_SERVER_CRT_COMMAND_ID = 0x6;
 	public static final int CONFIGURE_SOCAT_COMMAND_ID = 0x7;
+	public static final int KILL_SOCAT_COMMAND_ID = 0x8;
+	public static final int STOP_HACKING_COMMAND_ID = 0x9;
 
-	public static final int DEFAULT_SERVER_PORT = 8080;
 
 	public static final String APP_OWNER = "user_id";
 
 	public static final String PS_COMMAND = "ps | grep com.enlighten.transparentproxy";
-
 	public static final String IPTABLES_INIT_COMMAND = "iptables -t nat -I OUTPUT -m owner --uid-owner [UID] -j ACCEPT";
 	public static final String SYSTEM_LEVEL_FILTER_COMMAND = "iptables -t nat -A OUTPUT -p 6 --dport 443 -j DNAT --to 127.0.0.1:8080";
 	// redirects tcp packets targeted to a system identified by [DESTINATION_IP]
@@ -79,8 +80,8 @@ public class Constants {
 	public static final String IPTABLES_APP_LEVEL_FILTER_COMMAND = "iptables -t nat -I OUTPUT -p 6 --dport 443 -d [DESTINATION_IP] -m owner --uid-owner [UID] -j DNAT --to 127.0.0.1:4443";
 	public static final String IPTABLES_NAT_TABLE_CLEAR_COMMAND = "iptables -t nat -F OUTPUT";
 
-	public static final String APP_INFO = "app_info";
-
+	public static final int SOCAT_COMMAND_TIMEOUT = 120000;
+	public static final String SOCAT_KILL_COMMAND = "pkill socat";
 	public static String SOCAT_TRANSPARENT_PROXY_COMMAND;
 
 	// "openssl x509 -req -days 365 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt"
