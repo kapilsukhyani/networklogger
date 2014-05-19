@@ -27,17 +27,17 @@
             android:id="@+id/start_hack"
             android:layout_width="0dp"
             android:layout_height="50dip"
-            android:layout_weight="1"
+            android:layout_weight="2"
             android:background="@android:drawable/alert_light_frame"
             android:text="@string/start_hack" />
 
-        <Button
+       <!--  <Button
             android:id="@+id/stop_hack"
             android:layout_width="0dp"
             android:layout_height="50dip"
             android:layout_weight="1"
             android:background="@android:drawable/alert_light_frame"
-            android:text="@string/stop_hack" />
+            android:text="@string/stop_hack" /> -->
     </LinearLayout>
 
     <ScrollView

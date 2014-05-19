@@ -57,6 +57,7 @@ public class Constants {
 	public static final String RESPONSES_FILE_NAME = "responses.log";
 	public static final String SERIAL_FILE_NAME = "serial.txt";
 	public static final String APP_INFO = "app_info";
+	public static final String DOMAIN_NAME_PARAM = "domain_name";
 
 	public static final int PS_COMMAND_ID = 0x1;
 	public static final int IPTABLES_INIT_COMMAND_ID = 0x2;
@@ -82,6 +83,7 @@ public class Constants {
 
 	public static final int SOCAT_COMMAND_TIMEOUT = 120000;
 	public static final String SOCAT_KILL_COMMAND = "pkill socat";
+
 	public static String SOCAT_TRANSPARENT_PROXY_COMMAND;
 
 	// "openssl x509 -req -days 365 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt"

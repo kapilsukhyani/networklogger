@@ -41,6 +41,7 @@ public class ProxyApplication extends Application {
 	@Override
 	public void onLowMemory() {
 		super.onLowMemory();
+		AppLog.logDebug(TAG, "Low memory condition is detected");
 	}
 
 	@Override

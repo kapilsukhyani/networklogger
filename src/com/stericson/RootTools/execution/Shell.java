@@ -325,7 +325,7 @@ public class Shell {
                     /**
                      * Write the new command
                      *
-                     * We write the command followed by the token to indicate
+                     * We write the command followed by the  to indicate
                      * the end of the command execution
                      */
                     if (write < commands.size()) {

@@ -1,138 +1,84 @@
 package com.enlighten.transparentproxy;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 
-import android.app.Activity;
-import android.app.Dialog;
-import android.app.ProgressDialog;
+import android.app.IntentService;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
-import android.os.AsyncTask;
-import android.os.Bundle;
+import android.os.Binder;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.enlighten.transparentproxy.app.AppLog;
 import com.enlighten.transparentproxy.constants.Constants;
 import com.stericson.RootTools.RootTools;
 import com.stericson.RootTools.execution.CommandCapture;
-import com.stericson.RootTools.execution.Shell;
 
-public class ConfigureLogger extends Activity implements OnClickListener {
-	private Button hackToggleButton;
-	private AutoCompleteTextView domainName;
-	private static final String TAG = "ConfigureLogger";
+public class Interceptor extends IntentService {
+
+	private String domainName;
 	private String hostAddress;
 	private ApplicationInfo appInfo;
-	private Dialog setupProgressDialog;
-	private TextView console;
-	private boolean isHacking = false;
+	private static final String TAG = "INTERCEPTOR_SERVICE";
+
+	public Interceptor(String name) {
+		super(name);
+	}
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_configure);
+	protected void onHandleIntent(Intent intent) {
+		appInfo = (ApplicationInfo) intent
+				.getParcelableExtra(Constants.APP_INFO);
+		domainName = intent.getStringExtra(Constants.DOMAIN_NAME_PARAM);
+	}
 
-		appInfo = (ApplicationInfo) getIntent().getExtras().get(
-				Constants.APP_INFO);
+	@Override
+	public IBinder onBind(Intent intent) {
+		
 
-		if (null != appInfo) {
+		return new InterceptorLocalBinder();
+	}
 
-			getActionBar().setTitle(appInfo.packageName);
-			domainName = (AutoCompleteTextView) findViewById(R.id.domain_name);
-			String savedNames = PreferenceManager.getDefaultSharedPreferences(
-					this).getString(Constants.PREVIOUS_DOMAIN_NAMES, null);
-			if (!TextUtils.isEmpty(savedNames)) {
-				String[] names = savedNames.split(",");
-				domainName.setAdapter(new ArrayAdapter<String>(this,
-						android.R.layout.simple_dropdown_item_1line, names));
-			}
+	public class InterceptorLocalBinder extends Binder {
 
-			hackToggleButton = (Button) findViewById(R.id.start_hack);
-			hackToggleButton.setOnClickListener(this);
-
-			console = (TextView) findViewById(R.id.console);
-		} else {
-			Toast.makeText(this, "No application selected to be debugged",
-					Toast.LENGTH_LONG).show();
-			finish();
+		public IntentService getService() {
+			return Interceptor.this;
 		}
 
 	}
 
-	@Override
-	public void onClick(View v) {
+	public void startIntercepting() {
 
-		switch (v.getId()) {
-		case R.id.start_hack:
+	}
 
-			if (!isHacking) {
-				if (TextUtils.isEmpty(domainName.getText().toString())) {
-					domainName.setError("Please enter host to be hacked");
-				} else {
-					startHacking();
-				}
-			} else {
-				stopHacking();
-			}
-
-			break;
-
-		default:
-			break;
-		}
+	public void stopIntercepting() {
 
 	}
 
 	private void startHacking() {
-		(new AsyncTask<Void, Void, Void>() {
 
-			@Override
-			protected void onPreExecute() {
-				super.onPreExecute();
-				setupProgressDialog = ProgressDialog.show(ConfigureLogger.this,
-						"Configuring", "Initializing setup");
-			}
-
-			@Override
-			protected Void doInBackground(Void... params) {
-
-				if (getIpForDomain()) {
-					killPreviouslyRunnigSocat();
-				}
-				return null;
-			}
-
-			@Override
-			protected void onPostExecute(Void result) {
-				super.onPostExecute(result);
-			}
-		}).execute((Void) null);
+		if (getIpForDomain()) {
+			killPreviouslyRunnigSocat();
+		}
 
 	}
 
 	private boolean getIpForDomain() {
 		boolean validDomain = true;
 		try {
-			String domain = domainName.getText().toString().trim();
+			String domain = domainName;
 			InetAddress[] addresses = InetAddress.getAllByName(domain);
 			if (null != addresses && addresses.length > 0) {
 				hostAddress = addresses[0].getHostAddress();
 				boolean isNameAlreadySaved = false;
 				SharedPreferences preferences = PreferenceManager
-						.getDefaultSharedPreferences(ConfigureLogger.this);
+						.getDefaultSharedPreferences(getApplicationContext());
 				String domainNames = preferences.getString(
 						Constants.PREVIOUS_DOMAIN_NAMES, null);
 				if (!TextUtils.isEmpty(domainNames)) {
@@ -161,15 +107,6 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 			validDomain = false;
-			runOnUiThread(new Runnable() {
-
-				@Override
-				public void run() {
-					domainName.setError("Host entered is invalid dude");
-				}
-			});
-
-			stopProgressDialog();
 
 		}
 		return validDomain;
@@ -279,7 +216,7 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 		}
 
 		String command = Constants.OPENSSL_CREATE_SERVER_CSR_COMMAND.replace(
-				Constants.DOMAIN_NAME, domainName.getText().toString().trim());
+				Constants.DOMAIN_NAME, domainName);
 		CommandCapture generateCsrCommand = new CommandCapture(
 				Constants.GENERATE_FAKE_SERVER_CSR_COMAND_ID, command) {
 			@Override
@@ -349,7 +286,7 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	private void configureSocat() {
 
 		String command = Constants.SOCAT_TRANSPARENT_PROXY_COMMAND.replace(
-				Constants.DOMAIN_NAME, domainName.getText().toString().trim());
+				Constants.DOMAIN_NAME, domainName);
 		// run socat for 2 mins
 		CommandCapture socatommand = new CommandCapture(
 				Constants.CONFIGURE_SOCAT_COMMAND_ID,
@@ -370,30 +307,18 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 			public void commandOutput(int id, final String line) {
 				super.commandOutput(id, line);
 				AppLog.logDebug(TAG, "hacked::: " + line);
-				runOnUiThread(new Runnable() {
-
-					@Override
-					public void run() {
-						console.setText(console.getText() + " \n" + line);
-
-					}
-				});
 
 			}
 
 			@Override
 			public void commandTerminated(int id, String reason) {
 				super.commandTerminated(id, reason);
-				showToastOnUiThread("socat process terminated");
 
 			}
 
 		};
 
 		runCommand(socatommand);
-
-		stopProgressDialog();
-		toggleHackButton("Stop Hacking", true);
 
 	}
 
@@ -404,87 +329,8 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 			e.printStackTrace();
 			AppLog.logDebug(TAG,
 					"Exception while running command " + command.getCommand());
-			stopProgressDialog();
 		}
 
-	}
-
-	private void stopProgressDialog() {
-		runOnUiThread(new Runnable() {
-
-			@Override
-			public void run() {
-				setupProgressDialog.dismiss();
-			}
-		});
-	}
-
-	@Override
-	protected void onStop() {
-		super.onStop();
-	}
-
-	private void showToastOnUiThread(final String toast) {
-		runOnUiThread(new Runnable() {
-
-			@Override
-			public void run() {
-				Toast.makeText(ConfigureLogger.this, toast, Toast.LENGTH_LONG)
-						.show();
-
-			}
-		});
-	}
-
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-		stopHacking();
-	}
-
-	private void stopHacking() {
-		setupProgressDialog = ProgressDialog.show(ConfigureLogger.this,
-				"Stopping", "Stopping porcesses");
-
-		try {
-			Shell.closeRootShell();
-			CommandCapture commandCapture = new CommandCapture(
-					Constants.STOP_HACKING_COMMAND_ID,
-					Constants.SOCAT_KILL_COMMAND,
-					Constants.IPTABLES_NAT_TABLE_CLEAR_COMMAND) {
-				@Override
-				public void commandCompleted(int id, int exitcode) {
-					super.commandCompleted(id, exitcode);
-					AppLog.logDebug(TAG, "Stopped hacking");
-					stopProgressDialog();
-					toggleHackButton("Start Hacking", false);
-				}
-
-				@Override
-				public void commandTerminated(int id, String reason) {
-					super.commandTerminated(id, reason);
-					stopProgressDialog();
-					showToastOnUiThread("Not able to stop hacking, something went wrong");
-				}
-			};
-			runCommand(commandCapture);
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-	}
-
-	private void toggleHackButton(final String buttonText, final boolean status) {
-		runOnUiThread(new Runnable() {
-
-			@Override
-			public void run() {
-				hackToggleButton.setText(buttonText);
-				isHacking = status;
-
-			}
-		});
 	}
 
 }
