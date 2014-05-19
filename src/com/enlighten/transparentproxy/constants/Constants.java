@@ -17,11 +17,14 @@ public class Constants {
 	public static final String IPTABLE_INITIATED = "iptable_initiated";
 	public static final String PREVIOUS_DOMAIN_NAMES = "domain_names";
 	public static final String APPLICAITON_INITIALIZED = "applciation_initialized";
+	public static final String APP_INFO = "app_info";
+	public static final String DOMAIN_NAME_PARAM = "domain_name";
+	public static final String CALLBACK = "callback";
 
-	public static final int IPTABLE_INITIATED_MESSAGE_ID = 0x1;
-	public static final int SYSTEM_LEVEL_FILTER_ENABLED_MESSAGE_ID = 0x2;
-	public static final int IPTABLES_APP_LEVEL_FILTER_ENABLED_MESSAGE_ID = 0x3;
-	public static final int SOCAT_STARTED_MESSAGE_ID = 0x4;
+	public static final int STARTED_INTERCEPTING = 0x1;
+	public static final int STOPPED_INTERCEPTING = 0x2;
+	public static final int INVALID_DOMAIN_NAME = 0x3;
+	public static final int ERROR_WHILE_RUNNING = 0x4;
 
 	public static final String FAILURE_REASON = "failure_reason";
 
@@ -56,8 +59,6 @@ public class Constants {
 	public static final String REQUESTS_FILE_NAME = "requests.log";
 	public static final String RESPONSES_FILE_NAME = "responses.log";
 	public static final String SERIAL_FILE_NAME = "serial.txt";
-	public static final String APP_INFO = "app_info";
-	public static final String DOMAIN_NAME_PARAM = "domain_name";
 
 	public static final int PS_COMMAND_ID = 0x1;
 	public static final int IPTABLES_INIT_COMMAND_ID = 0x2;
@@ -68,7 +69,6 @@ public class Constants {
 	public static final int CONFIGURE_SOCAT_COMMAND_ID = 0x7;
 	public static final int KILL_SOCAT_COMMAND_ID = 0x8;
 	public static final int STOP_HACKING_COMMAND_ID = 0x9;
-
 
 	public static final String APP_OWNER = "user_id";
 

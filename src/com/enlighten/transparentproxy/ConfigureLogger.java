@@ -10,10 +10,15 @@ import java.util.List;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.View;
@@ -24,6 +29,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.enlighten.transparentproxy.Interceptor.InterceptorLocalBinder;
 import com.enlighten.transparentproxy.app.AppLog;
 import com.enlighten.transparentproxy.constants.Constants;
 import com.stericson.RootTools.RootTools;
@@ -39,6 +45,22 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	private Dialog setupProgressDialog;
 	private TextView console;
 	private boolean isHacking = false;
+	private Interceptor interceptor;
+
+	public class CallbackHandler extends Handler {
+		@Override
+		public void handleMessage(Message msg) {
+			if (msg.what == Constants.STARTED_INTERCEPTING) {
+				setupProgressDialog.dismiss();
+				toggleHackButton("Stop Hacking", true);
+
+			} else if (msg.what == Constants.STOPPED_INTERCEPTING) {
+
+			} else if (msg.what == Constants.INVALID_DOMAIN_NAME) {
+
+			}
+		}
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -97,29 +119,41 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	}
 
 	private void startHacking() {
-		(new AsyncTask<Void, Void, Void>() {
+		setupProgressDialog = ProgressDialog.show(ConfigureLogger.this,
+				"Configuring", "Initializing setup");
+		Intent intent = new Intent(this, Interceptor.class);
+		intent.putExtra(Constants.DOMAIN_NAME_PARAM, domainName.getText()
+				.toString().trim());
+		intent.putExtra(Constants.APP_INFO, appInfo);
+		getApplicationContext().bindService(intent, new ServiceConnection() {
 
 			@Override
-			protected void onPreExecute() {
-				super.onPreExecute();
-				setupProgressDialog = ProgressDialog.show(ConfigureLogger.this,
-						"Configuring", "Initializing setup");
+			public void onServiceDisconnected(ComponentName name) {
+				interceptor = null;
 			}
 
 			@Override
-			protected Void doInBackground(Void... params) {
+			public void onServiceConnected(ComponentName name, IBinder service) {
+				interceptor = ((InterceptorLocalBinder) service).getService();
+				interceptor.startIntercepting(new CallbackHandler());
 
-				if (getIpForDomain()) {
-					killPreviouslyRunnigSocat();
-				}
-				return null;
 			}
+		}, BIND_ABOVE_CLIENT);
 
-			@Override
-			protected void onPostExecute(Void result) {
-				super.onPostExecute(result);
-			}
-		}).execute((Void) null);
+		/*
+		 * (new AsyncTask<Void, Void, Void>() {
+		 * 
+		 * @Override protected void onPreExecute() { super.onPreExecute();
+		 * setupProgressDialog = ProgressDialog.show(ConfigureLogger.this,
+		 * "Configuring", "Initializing setup"); }
+		 * 
+		 * @Override protected Void doInBackground(Void... params) {
+		 * 
+		 * if (getIpForDomain()) { killPreviouslyRunnigSocat(); } return null; }
+		 * 
+		 * @Override protected void onPostExecute(Void result) {
+		 * super.onPostExecute(result); } }).execute((Void) null);
+		 */
 
 	}
 
