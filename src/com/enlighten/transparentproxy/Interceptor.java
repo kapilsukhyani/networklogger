@@ -86,13 +86,9 @@ public class Interceptor extends Service {
 
 	@Override
 	public IBinder onBind(Intent intent) {
-		domainName = intent.getStringExtra(Constants.DOMAIN_NAME_PARAM);
-		appInfo = (ApplicationInfo) intent
-				.getParcelableExtra(Constants.APP_INFO);
-		if (!TextUtils.isEmpty(domainName) && null != appInfo) {
-			return new InterceptorLocalBinder();
-		}
-		return null;
+
+		return new InterceptorLocalBinder();
+
 	}
 
 	public class InterceptorLocalBinder extends Binder {
@@ -103,16 +99,22 @@ public class Interceptor extends Service {
 
 	}
 
-	public void startIntercepting(Handler callback) {
-		this.callback = callback;
-		interceptorThread = new HandlerThread("interceptor");
-		mInterceptorHandler = new InterceptorHandler(
-				interceptorThread.getLooper());
+	public void startIntercepting(Handler callback, String domainName,
+			ApplicationInfo appInfo) {
 
-		interceptorThread.start();
+		if (!TextUtils.isEmpty(domainName) && null != appInfo
+				&& null != callback) {
+			this.domainName = domainName;
+			this.appInfo = appInfo;
+			this.callback = callback;
+			interceptorThread = new HandlerThread("interceptor");
+			interceptorThread.start();
+			mInterceptorHandler = new InterceptorHandler(
+					interceptorThread.getLooper());
 
-		Message msg = mInterceptorHandler.obtainMessage(START_INTERCEPTING);
-		mInterceptorHandler.sendMessage(msg);
+			Message msg = mInterceptorHandler.obtainMessage(START_INTERCEPTING);
+			mInterceptorHandler.sendMessage(msg);
+		}
 
 	}
 
@@ -204,7 +206,7 @@ public class Interceptor extends Service {
 			e.printStackTrace();
 			validDomain = false;
 			Message msg = callback.obtainMessage(Constants.INVALID_DOMAIN_NAME);
-			callback.handleMessage(msg);
+			callback.sendMessage(msg);
 
 		}
 		return validDomain;
@@ -236,7 +238,7 @@ public class Interceptor extends Service {
 		runCommand(socatommand);
 		Message message = callback
 				.obtainMessage(Constants.STARTED_INTERCEPTING);
-		callback.handleMessage(message);
+		callback.sendMessage(message);
 
 	}
 
@@ -249,7 +251,7 @@ public class Interceptor extends Service {
 					"Exception while running command " + command.getCommand());
 			Message message = callback
 					.obtainMessage(Constants.ERROR_WHILE_RUNNING);
-			callback.handleMessage(message);
+			callback.sendMessage(message);
 		}
 	}
 
@@ -266,7 +268,7 @@ public class Interceptor extends Service {
 					AppLog.logDebug(TAG, "Stopped hacking");
 					Message message = callback
 							.obtainMessage(Constants.STOPPED_INTERCEPTING);
-					callback.handleMessage(message);
+					callback.sendMessage(message);
 					interceptorThread.interrupt();
 
 				}

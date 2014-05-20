@@ -17,6 +17,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Handler.Callback;
 import android.os.IBinder;
 import android.os.Message;
 import android.preference.PreferenceManager;
@@ -46,10 +47,12 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	private TextView console;
 	private boolean isHacking = false;
 	private Interceptor interceptor;
+	private Handler mCallbackHandler;
 
-	public class CallbackHandler extends Handler {
+	public class CallbackHandler implements Callback {
+
 		@Override
-		public void handleMessage(Message msg) {
+		public boolean handleMessage(Message msg) {
 			if (msg.what == Constants.STARTED_INTERCEPTING) {
 				setupProgressDialog.dismiss();
 				toggleHackButton("Stop Hacking", true);
@@ -58,15 +61,19 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 
 			} else if (msg.what == Constants.INVALID_DOMAIN_NAME) {
 
+				setupProgressDialog.dismiss();
+				domainName.setError("Invalid domain name dude");
 			}
+			return false;
 		}
+
 	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_configure);
-
+		mCallbackHandler = new Handler(new CallbackHandler());
 		appInfo = (ApplicationInfo) getIntent().getExtras().get(
 				Constants.APP_INFO);
 
@@ -122,23 +129,38 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 		setupProgressDialog = ProgressDialog.show(ConfigureLogger.this,
 				"Configuring", "Initializing setup");
 		Intent intent = new Intent(this, Interceptor.class);
-		intent.putExtra(Constants.DOMAIN_NAME_PARAM, domainName.getText()
-				.toString().trim());
-		intent.putExtra(Constants.APP_INFO, appInfo);
-		getApplicationContext().bindService(intent, new ServiceConnection() {
 
-			@Override
-			public void onServiceDisconnected(ComponentName name) {
-				interceptor = null;
+		if (null == interceptor) {
+			boolean bound = getApplicationContext().bindService(intent,
+					new ServiceConnection() {
+
+						@Override
+						public void onServiceDisconnected(ComponentName name) {
+							interceptor = null;
+						}
+
+						@Override
+						public void onServiceConnected(ComponentName name,
+								IBinder service) {
+							interceptor = ((InterceptorLocalBinder) service)
+									.getService();
+							interceptor.startIntercepting(mCallbackHandler,
+									domainName.getText().toString().trim(),
+									appInfo);
+						}
+					}, BIND_AUTO_CREATE);
+
+			if (!bound) {
+				setupProgressDialog.dismiss();
+				Toast.makeText(getApplicationContext(),
+						"Not able to bind to the service", Toast.LENGTH_LONG)
+						.show();
+
 			}
-
-			@Override
-			public void onServiceConnected(ComponentName name, IBinder service) {
-				interceptor = ((InterceptorLocalBinder) service).getService();
-				interceptor.startIntercepting(new CallbackHandler());
-
-			}
-		}, BIND_ABOVE_CLIENT);
+		} else {
+			interceptor.startIntercepting(mCallbackHandler, domainName
+					.getText().toString().trim(), appInfo);
+		}
 
 		/*
 		 * (new AsyncTask<Void, Void, Void>() {
@@ -477,35 +499,29 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	}
 
 	private void stopHacking() {
-		setupProgressDialog = ProgressDialog.show(ConfigureLogger.this,
-				"Stopping", "Stopping porcesses");
 
-		try {
-			Shell.closeRootShell();
-			CommandCapture commandCapture = new CommandCapture(
-					Constants.STOP_HACKING_COMMAND_ID,
-					Constants.SOCAT_KILL_COMMAND,
-					Constants.IPTABLES_NAT_TABLE_CLEAR_COMMAND) {
-				@Override
-				public void commandCompleted(int id, int exitcode) {
-					super.commandCompleted(id, exitcode);
-					AppLog.logDebug(TAG, "Stopped hacking");
-					stopProgressDialog();
-					toggleHackButton("Start Hacking", false);
-				}
-
-				@Override
-				public void commandTerminated(int id, String reason) {
-					super.commandTerminated(id, reason);
-					stopProgressDialog();
-					showToastOnUiThread("Not able to stop hacking, something went wrong");
-				}
-			};
-			runCommand(commandCapture);
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		/*
+		 * setupProgressDialog = ProgressDialog.show(ConfigureLogger.this,
+		 * "Stopping", "Stopping porcesses");
+		 * 
+		 * try { Shell.closeRootShell(); CommandCapture commandCapture = new
+		 * CommandCapture( Constants.STOP_HACKING_COMMAND_ID,
+		 * Constants.SOCAT_KILL_COMMAND,
+		 * Constants.IPTABLES_NAT_TABLE_CLEAR_COMMAND) {
+		 * 
+		 * @Override public void commandCompleted(int id, int exitcode) {
+		 * super.commandCompleted(id, exitcode); AppLog.logDebug(TAG,
+		 * "Stopped hacking"); stopProgressDialog();
+		 * toggleHackButton("Start Hacking", false); }
+		 * 
+		 * @Override public void commandTerminated(int id, String reason) {
+		 * super.commandTerminated(id, reason); stopProgressDialog();
+		 * showToastOnUiThread
+		 * ("Not able to stop hacking, something went wrong"); } };
+		 * runCommand(commandCapture);
+		 * 
+		 * } catch (IOException e) { e.printStackTrace(); }
+		 */
 
 	}
 
