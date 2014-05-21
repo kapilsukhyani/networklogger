@@ -63,8 +63,8 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 			} else if (msg.what == Constants.STOPPED_INTERCEPTING) {
 				progressDialog.dismiss();
 				toggleHackButton("Start Hacking", false);
-				showSaveInterceptedDataDialg();
-				console.setText("");
+				showSaveInterceptedDataDialg(console.getText());
+				console.setText("Intercepting: ");
 				Toast.makeText(ConfigureLogger.this, "Stopped Intercepting",
 						Toast.LENGTH_LONG).show();
 
@@ -76,7 +76,7 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 
 			else if (msg.what == Constants.OUTPUT_UPDATED) {
 				String updatedOutput = (String) msg.obj;
-				console.setText(updatedOutput);
+				console.append(updatedOutput);
 			}
 
 			else if (msg.what == Constants.DATA_SAVED) {
@@ -206,7 +206,7 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 		});
 	}
 
-	private void showSaveInterceptedDataDialg() {
+	private void showSaveInterceptedDataDialg(final CharSequence text) {
 
 		Builder dialogBuilder = new Builder(this);
 		dialogBuilder.setTitle("Do you want to save intercepted data?");
@@ -215,7 +215,7 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 
 					@Override
 					public void onClick(DialogInterface dialog, int which) {
-						interceptor.saveInterceptedData();
+						interceptor.saveInterceptedData(text);
 						dialog.dismiss();
 						progressDialog = ProgressDialog.show(
 								ConfigureLogger.this, "Please wait",

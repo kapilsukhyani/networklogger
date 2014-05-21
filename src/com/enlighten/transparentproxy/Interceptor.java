@@ -62,7 +62,7 @@ public class Interceptor extends Service {
 			} else if (msg.what == STOP_INTERCEPTING) {
 				stopShellAndSocat();
 			} else if (msg.what == SAVE_SOCAT_OUTPUT) {
-				saveSocatOutput();
+				saveSocatOutput((CharSequence) msg.obj);
 			}
 		}
 
@@ -238,10 +238,12 @@ public class Interceptor extends Service {
 
 			@Override
 			public void commandOutput(int id, String line) {
-				super.commandOutput(id, line);
+				// I do not want string builder to created and maintained
+				// super.commandOutput(id, line);
+				RootTools.log("Command", "ID: " + id + ", " + line);
 				Message message = callback
 						.obtainMessage(Constants.OUTPUT_UPDATED);
-				message.obj = socatommand.toString();
+				message.obj = line;
 				callback.sendMessage(message);
 
 			}
@@ -290,11 +292,13 @@ public class Interceptor extends Service {
 		}
 	}
 
-	public void saveInterceptedData() {
-		mInterceptorHandler.sendEmptyMessage(SAVE_SOCAT_OUTPUT);
+	public void saveInterceptedData(CharSequence text) {
+		Message msg = mInterceptorHandler.obtainMessage(SAVE_SOCAT_OUTPUT);
+		msg.obj = text;
+		mInterceptorHandler.sendMessage(msg);
 	}
 
-	private void saveSocatOutput() {
+	private void saveSocatOutput(CharSequence text) {
 		BufferedWriter writer = null;
 		if (null != socatommand) {
 			File parentDir = Environment
@@ -312,7 +316,7 @@ public class Interceptor extends Service {
 					writer = new BufferedWriter(new OutputStreamWriter(
 							new FileOutputStream(file)));
 
-					writer.write(socatommand.toString());
+					writer.write(text.toString());
 					Message msg = callback.obtainMessage(Constants.DATA_SAVED);
 					msg.obj = file.getAbsolutePath();
 					callback.sendMessage(msg);
