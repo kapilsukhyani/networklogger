@@ -25,6 +25,9 @@ public class Constants {
 	public static final int STOPPED_INTERCEPTING = 0x2;
 	public static final int INVALID_DOMAIN_NAME = 0x3;
 	public static final int ERROR_WHILE_RUNNING = 0x4;
+	public static final int OUTPUT_UPDATED = 0x5;
+	public static final int DATA_SAVED = 0x6;
+	public static final int DATA_NOT_SAVED = 0x7;
 
 	public static final String FAILURE_REASON = "failure_reason";
 
@@ -59,6 +62,7 @@ public class Constants {
 	public static final String REQUESTS_FILE_NAME = "requests.log";
 	public static final String RESPONSES_FILE_NAME = "responses.log";
 	public static final String SERIAL_FILE_NAME = "serial.txt";
+	public static final String INTERCEPTED_DATA_FILE_NAME = "intercepted_data.logs";
 
 	public static final int PS_COMMAND_ID = 0x1;
 	public static final int IPTABLES_INIT_COMMAND_ID = 0x2;
@@ -81,8 +85,11 @@ public class Constants {
 	public static final String IPTABLES_APP_LEVEL_FILTER_COMMAND = "iptables -t nat -I OUTPUT -p 6 --dport 443 -d [DESTINATION_IP] -m owner --uid-owner [UID] -j DNAT --to 127.0.0.1:4443";
 	public static final String IPTABLES_NAT_TABLE_CLEAR_COMMAND = "iptables -t nat -F OUTPUT";
 
-	public static final int SOCAT_COMMAND_TIMEOUT = 120000;
+	public static final int SOCAT_COMMAND_TIMEOUT = 180000;
 	public static final String SOCAT_KILL_COMMAND = "pkill socat";
+
+
+
 
 	public static String SOCAT_TRANSPARENT_PROXY_COMMAND;
 

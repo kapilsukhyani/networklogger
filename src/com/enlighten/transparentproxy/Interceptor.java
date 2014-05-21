@@ -1,10 +1,14 @@
 package com.enlighten.transparentproxy;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import android.app.Service;
@@ -12,6 +16,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.os.Binder;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -36,8 +41,10 @@ public class Interceptor extends Service {
 	private HandlerThread interceptorThread;
 	private static final int START_INTERCEPTING = 101;
 	private static final int STOP_INTERCEPTING = 102;
+	private static final int SAVE_SOCAT_OUTPUT = 103;
 	private InterceptorHandler mInterceptorHandler;
 	private Handler callback;
+	CommandCapture socatommand;
 
 	private class InterceptorHandler extends Handler {
 
@@ -54,6 +61,8 @@ public class Interceptor extends Service {
 				}
 			} else if (msg.what == STOP_INTERCEPTING) {
 				stopShellAndSocat();
+			} else if (msg.what == SAVE_SOCAT_OUTPUT) {
+				saveSocatOutput();
 			}
 		}
 
@@ -86,9 +95,7 @@ public class Interceptor extends Service {
 
 	@Override
 	public IBinder onBind(Intent intent) {
-
 		return new InterceptorLocalBinder();
-
 	}
 
 	public class InterceptorLocalBinder extends Binder {
@@ -112,16 +119,14 @@ public class Interceptor extends Service {
 			mInterceptorHandler = new InterceptorHandler(
 					interceptorThread.getLooper());
 
-			Message msg = mInterceptorHandler.obtainMessage(START_INTERCEPTING);
-			mInterceptorHandler.sendMessage(msg);
+			mInterceptorHandler.sendEmptyMessage(START_INTERCEPTING);
 		}
 
 	}
 
 	public void stopIntercepting() {
 
-		Message msg = mInterceptorHandler.obtainMessage(STOP_INTERCEPTING);
-		mInterceptorHandler.sendMessage(msg);
+		mInterceptorHandler.sendEmptyMessage(STOP_INTERCEPTING);
 
 	}
 
@@ -205,8 +210,7 @@ public class Interceptor extends Service {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 			validDomain = false;
-			Message msg = callback.obtainMessage(Constants.INVALID_DOMAIN_NAME);
-			callback.sendMessage(msg);
+			callback.sendEmptyMessage(Constants.INVALID_DOMAIN_NAME);
 
 		}
 		return validDomain;
@@ -216,9 +220,8 @@ public class Interceptor extends Service {
 
 		String command = Constants.SOCAT_TRANSPARENT_PROXY_COMMAND.replace(
 				Constants.DOMAIN_NAME, domainName);
-		// run socat for 2 mins
-		CommandCapture socatommand = new CommandCapture(
-				Constants.CONFIGURE_SOCAT_COMMAND_ID,
+		// run socat for 3 mins
+		socatommand = new CommandCapture(Constants.CONFIGURE_SOCAT_COMMAND_ID,
 				Constants.SOCAT_COMMAND_TIMEOUT, command) {
 			@Override
 			public void commandCompleted(int id, int exitcode) {
@@ -233,12 +236,20 @@ public class Interceptor extends Service {
 
 			}
 
+			@Override
+			public void commandOutput(int id, String line) {
+				super.commandOutput(id, line);
+				Message message = callback
+						.obtainMessage(Constants.OUTPUT_UPDATED);
+				message.obj = socatommand.toString();
+				callback.sendMessage(message);
+
+			}
+
 		};
 
 		runCommand(socatommand);
-		Message message = callback
-				.obtainMessage(Constants.STARTED_INTERCEPTING);
-		callback.sendMessage(message);
+		callback.sendEmptyMessage(Constants.STARTED_INTERCEPTING);
 
 	}
 
@@ -249,9 +260,7 @@ public class Interceptor extends Service {
 			e.printStackTrace();
 			AppLog.logDebug(TAG,
 					"Exception while running command " + command.getCommand());
-			Message message = callback
-					.obtainMessage(Constants.ERROR_WHILE_RUNNING);
-			callback.sendMessage(message);
+			callback.sendEmptyMessage(Constants.ERROR_WHILE_RUNNING);
 		}
 	}
 
@@ -266,10 +275,7 @@ public class Interceptor extends Service {
 				public void commandCompleted(int id, int exitcode) {
 					super.commandCompleted(id, exitcode);
 					AppLog.logDebug(TAG, "Stopped hacking");
-					Message message = callback
-							.obtainMessage(Constants.STOPPED_INTERCEPTING);
-					callback.sendMessage(message);
-					interceptorThread.interrupt();
+					callback.sendEmptyMessage(Constants.STOPPED_INTERCEPTING);
 
 				}
 
@@ -282,6 +288,51 @@ public class Interceptor extends Service {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public void saveInterceptedData() {
+		mInterceptorHandler.sendEmptyMessage(SAVE_SOCAT_OUTPUT);
+	}
+
+	private void saveSocatOutput() {
+		BufferedWriter writer = null;
+		if (null != socatommand) {
+			File parentDir = Environment
+					.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+			if (parentDir.exists()) {
+				try {
+					String fileName = parentDir.getAbsolutePath() + "/"
+							+ Constants.INTERCEPTED_DATA_FILE_NAME + "_"
+							+ (new Date()).getTime();
+					File file = new File(fileName);
+					if (file.exists()) {
+						file.delete();
+					}
+					file.createNewFile();
+					writer = new BufferedWriter(new OutputStreamWriter(
+							new FileOutputStream(file)));
+
+					writer.write(socatommand.toString());
+					Message msg = callback.obtainMessage(Constants.DATA_SAVED);
+					msg.obj = file.getAbsolutePath();
+					callback.sendMessage(msg);
+					return;
+				} catch (IOException e) {
+					e.printStackTrace();
+				} finally {
+					if (null != writer) {
+						try {
+							writer.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+
+			}
+		}
+
+		callback.sendEmptyMessage(Constants.DATA_NOT_SAVED);
 	}
 
 }

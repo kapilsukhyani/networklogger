@@ -9,6 +9,7 @@
         android:targetSdkVersion="18" />
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:name="com.enlighten.transparentproxy.app.ProxyApplication"
@@ -39,6 +40,9 @@
                 <category android:name="android.intent.category.INFO" />
             </intent-filter>
         </activity>
+
+        <service android:name="com.enlighten.transparentproxy.Interceptor" >
+        </service>
     </application>
 
 </manifest>
