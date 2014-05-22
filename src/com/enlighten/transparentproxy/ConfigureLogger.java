@@ -141,7 +141,7 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 					startHacking();
 				}
 			} else {
-				stopHacking();
+				stopHacking(false);
 			}
 
 			break;
@@ -181,13 +181,46 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		stopHacking();
+		stopHacking(true);
 	}
 
-	private void stopHacking() {
+	@Override
+	public void onBackPressed() {
+		showStopHackingAlert();
+	}
 
-		progressDialog = ProgressDialog.show(ConfigureLogger.this, "Stopping",
-				"Stopping porcesses");
+	private void showStopHackingAlert() {
+
+		Builder builder = new Builder(this);
+		builder.setTitle("App will stop intercepting data");
+		builder.setMessage("You sure you wanna do it? ");
+		builder.setPositiveButton("Do it",
+				new DialogInterface.OnClickListener() {
+
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						dialog.dismiss();
+						ConfigureLogger.this.finish();
+					}
+				});
+		builder.setNegativeButton("Abort",
+				new DialogInterface.OnClickListener() {
+
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						dialog.dismiss();
+					}
+				});
+		builder.create().show();
+
+	}
+
+	private void stopHacking(boolean isFinishing) {
+
+		if (!isFinishing) {
+			progressDialog = ProgressDialog.show(ConfigureLogger.this,
+					"Stopping", "Stopping porcesses");
+		}
 		if (null != interceptor) {
 			interceptor.stopIntercepting();
 		}

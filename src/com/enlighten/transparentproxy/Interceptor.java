@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -23,6 +24,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 
 import com.enlighten.transparentproxy.app.AppLog;
@@ -42,6 +44,7 @@ public class Interceptor extends Service {
 	private static final int START_INTERCEPTING = 101;
 	private static final int STOP_INTERCEPTING = 102;
 	private static final int SAVE_SOCAT_OUTPUT = 103;
+	private static final int FOREGROUND_NOTIFICATION = 1;
 	private InterceptorHandler mInterceptorHandler;
 	private Handler callback;
 	CommandCapture socatommand;
@@ -56,7 +59,7 @@ public class Interceptor extends Service {
 		public void handleMessage(Message msg) {
 			if (msg.what == START_INTERCEPTING) {
 				if (getIpForDomain()) {
-					runComnads();
+					runCommands();
 
 				}
 			} else if (msg.what == STOP_INTERCEPTING) {
@@ -130,7 +133,7 @@ public class Interceptor extends Service {
 
 	}
 
-	private void runComnads() {
+	private void runCommands() {
 
 		File file = new File(Constants.SERVER_CSR_FILE_PATH);
 		if (file.exists()) {
@@ -233,6 +236,7 @@ public class Interceptor extends Service {
 			@Override
 			public void commandTerminated(int id, String reason) {
 				super.commandTerminated(id, reason);
+				stopShellAndSocat();
 
 			}
 
@@ -250,20 +254,41 @@ public class Interceptor extends Service {
 
 		};
 
-		runCommand(socatommand);
-		callback.sendEmptyMessage(Constants.STARTED_INTERCEPTING);
+		if (runCommand(socatommand)) {
+			callback.sendEmptyMessage(Constants.STARTED_INTERCEPTING);
+			makeServiceForground();
+		}
 
 	}
 
-	private void runCommand(Command command) {
+	private void makeServiceForground() {
+		Notification notification;
+		NotificationCompat.Builder builder = new NotificationCompat.Builder(
+				getApplicationContext())
+				.setSmallIcon(android.R.drawable.presence_online)
+				.setTicker("Started Intercepting")
+				.setContentTitle("Intercepting...")
+				.setContentText(appInfo.packageName + " " + domainName)
+				.setDefaults(Notification.DEFAULT_ALL).setAutoCancel(true)
+				.setOnlyAlertOnce(true).setOngoing(true);
+
+		notification = builder.build();
+		notification.flags |= Notification.FLAG_FOREGROUND_SERVICE;
+
+		startForeground(1, notification);
+	}
+
+	private boolean runCommand(Command command) {
 		try {
 			RootTools.getShell(true).add(command);
+			return true;
 		} catch (Exception e) {
 			e.printStackTrace();
 			AppLog.logDebug(TAG,
 					"Exception while running command " + command.getCommand());
 			callback.sendEmptyMessage(Constants.ERROR_WHILE_RUNNING);
 		}
+		return false;
 	}
 
 	private void stopShellAndSocat() {
@@ -277,6 +302,7 @@ public class Interceptor extends Service {
 				public void commandCompleted(int id, int exitcode) {
 					super.commandCompleted(id, exitcode);
 					AppLog.logDebug(TAG, "Stopped hacking");
+					stopForeground(true);
 					callback.sendEmptyMessage(Constants.STOPPED_INTERCEPTING);
 
 				}
