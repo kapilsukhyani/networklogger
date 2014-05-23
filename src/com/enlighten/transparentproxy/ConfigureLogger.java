@@ -181,7 +181,10 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		stopHacking(true);
+		if (isHacking) {
+			stopHacking(true);
+		}
+
 	}
 
 	@Override
@@ -190,28 +193,31 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	}
 
 	private void showStopHackingAlert() {
+		if (isHacking) {
+			Builder builder = new Builder(this);
+			builder.setTitle("App will stop intercepting data");
+			builder.setMessage("You sure you wanna do it? ");
+			builder.setPositiveButton("Do it",
+					new DialogInterface.OnClickListener() {
 
-		Builder builder = new Builder(this);
-		builder.setTitle("App will stop intercepting data");
-		builder.setMessage("You sure you wanna do it? ");
-		builder.setPositiveButton("Do it",
-				new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							dialog.dismiss();
+							ConfigureLogger.this.finish();
+						}
+					});
+			builder.setNegativeButton("Abort",
+					new DialogInterface.OnClickListener() {
 
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-						dialog.dismiss();
-						ConfigureLogger.this.finish();
-					}
-				});
-		builder.setNegativeButton("Abort",
-				new DialogInterface.OnClickListener() {
-
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-						dialog.dismiss();
-					}
-				});
-		builder.create().show();
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							dialog.dismiss();
+						}
+					});
+			builder.create().show();
+		} else {
+			finish();
+		}
 
 	}
 
