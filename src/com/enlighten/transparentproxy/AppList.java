@@ -15,6 +15,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -293,7 +294,24 @@ public class AppList extends ListActivity implements OnItemClickListener {
 
 				}
 
-				checkRequiredBinaries();
+				if (!checkRequiredBinaries()) {
+					Dialog d = new AlertDialog.Builder(AppList.this)
+							.setMessage(
+									"Not able to install prerequisites, cannot run app")
+							.setCancelable(false)
+							.setPositiveButton("OK", new OnClickListener() {
+
+								@Override
+								public void onClick(DialogInterface dialog,
+										int which) {
+									dialog.dismiss();
+									AppList.this.finish();
+
+								}
+							}).create();
+					d.show();
+
+				}
 
 				return null;
 			}
@@ -314,7 +332,7 @@ public class AppList extends ListActivity implements OnItemClickListener {
 		getListView().setOnItemClickListener(this);
 	}
 
-	private void checkRequiredBinaries() {
+	private boolean checkRequiredBinaries() {
 		// assuming that the permission on that file is proper if it is found
 		// via findBinay, although there is a method
 		// checkUtil to check a binary and its permission together but it
@@ -325,6 +343,18 @@ public class AppList extends ListActivity implements OnItemClickListener {
 		} else {
 			AppLog.logDebug(TAG, "openssl not found, installing binary");
 			// install the binary as it is not available
+			// install the binary as it is not available
+			if (!RootTools.hasBinary(this, Constants.OPENSSL)) {
+
+				if (RootTools.installBinary(this, R.raw.openssl, "openssl")) {
+					Constants.updateOpensslCommandToInstalledBinaryPath();
+				} else {
+					return false;
+				}
+
+			} else {
+				Constants.updateOpensslCommandToInstalledBinaryPath();
+			}
 		}
 
 		if (RootTools.findBinary(Constants.SOCAT)) {
@@ -333,12 +363,25 @@ public class AppList extends ListActivity implements OnItemClickListener {
 			AppLog.logDebug(TAG, "socat not found, installing binary");
 			// install the binary as it is not available
 			if (!RootTools.hasBinary(this, Constants.SOCAT)) {
+				if (RootTools.installBinary(this, R.raw.socat, "socat")) {
+					Constants.updateSocatCommandToInstalledBinaryPath();
 
-				RootTools.installBinary(this, R.raw.socat, "socat");
+				} else {
+					return false;
+				}
+
+			} else {
+				Constants.updateSocatCommandToInstalledBinaryPath();
 			}
 
 		}
 
+		return true;
+
+	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
 	}
 
 }

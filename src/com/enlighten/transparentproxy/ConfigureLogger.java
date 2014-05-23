@@ -1,5 +1,7 @@
 package com.enlighten.transparentproxy;
 
+import java.io.StringWriter;
+
 import android.app.Activity;
 import android.app.AlertDialog.Builder;
 import android.app.Dialog;
@@ -9,6 +11,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ApplicationInfo;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Handler.Callback;
@@ -25,6 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.enlighten.transparentproxy.Interceptor.InterceptorLocalBinder;
+import com.enlighten.transparentproxy.app.AppLog;
 import com.enlighten.transparentproxy.constants.Constants;
 
 public class ConfigureLogger extends Activity implements OnClickListener {
@@ -37,6 +41,8 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	private boolean isHacking = false;
 	private Interceptor interceptor;
 	private Handler mCallbackHandler;
+	private boolean activityVisible = false;
+	private StringWriter outputBuffer = new StringWriter();
 	private ServiceConnection mServiceConnection = new ServiceConnection() {
 
 		@Override
@@ -52,43 +58,77 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 		}
 	};
 
+	protected void onStart() {
+		super.onStart();
+		activityVisible = true;
+		if (isHacking) {
+			progressDialog = ProgressDialog.show(ConfigureLogger.this,
+					"Wait dude", "Populating screen with intercepted data");
+			// do not want to make screen rendering slow, hence populating
+			// console text view in a bit
+			mCallbackHandler.postAtTime(new Runnable() {
+
+				@Override
+				public void run() {
+					console.setText("Intercepting:"
+							+ new String(outputBuffer.getBuffer()));
+					progressDialog.dismiss();
+				}
+			}, 500);
+		}
+
+	};
+
 	public class CallbackHandler implements Callback {
 
 		@Override
 		public boolean handleMessage(Message msg) {
-			if (msg.what == Constants.STARTED_INTERCEPTING) {
-				progressDialog.dismiss();
-				toggleHackButton("Stop Hacking", true);
+			if (!isFinishing()) {
+				if (msg.what == Constants.STARTED_INTERCEPTING) {
+					progressDialog.dismiss();
+					toggleHackButton("Stop Hacking", true);
 
-			} else if (msg.what == Constants.STOPPED_INTERCEPTING) {
-				progressDialog.dismiss();
-				toggleHackButton("Start Hacking", false);
-				showSaveInterceptedDataDialg(console.getText());
-				console.setText("Intercepting: ");
-				Toast.makeText(ConfigureLogger.this, "Stopped Intercepting",
-						Toast.LENGTH_LONG).show();
+				} else if (msg.what == Constants.STOPPED_INTERCEPTING) {
 
-			} else if (msg.what == Constants.INVALID_DOMAIN_NAME) {
+					progressDialog.dismiss();
+					toggleHackButton("Start Hacking", false);
+					showSaveInterceptedDataDialg(console.getText());
+					console.setText("Intercepting: ");
+					outputBuffer.getBuffer().setLength(0);
+					Toast.makeText(ConfigureLogger.this,
+							"Stopped Intercepting", Toast.LENGTH_LONG).show();
 
-				progressDialog.dismiss();
-				domainName.setError("Invalid domain name dude");
-			}
+				} else if (msg.what == Constants.INVALID_DOMAIN_NAME) {
 
-			else if (msg.what == Constants.OUTPUT_UPDATED) {
-				String updatedOutput = (String) msg.obj;
-				console.append(updatedOutput);
-			}
+					progressDialog.dismiss();
+					domainName.setError("Invalid domain name dude");
+				}
 
-			else if (msg.what == Constants.DATA_SAVED) {
-				progressDialog.dismiss();
-				String filePath = (String) msg.obj;
-				Toast.makeText(getApplicationContext(),
-						"Intercepted data saved in " + filePath + " file",
-						Toast.LENGTH_LONG).show();
-			} else if (msg.what == Constants.DATA_NOT_SAVED) {
-				progressDialog.dismiss();
-				Toast.makeText(getApplicationContext(),
-						"Not able to save data", Toast.LENGTH_LONG).show();
+				else if (msg.what == Constants.OUTPUT_UPDATED) {
+					String updatedOutput = (String) msg.obj;
+					String newline = "\n" + updatedOutput;
+					outputBuffer.append(newline);
+					// if an activity of an application being tracked in
+					// launched
+					// without going away from this screen, for e.g using am
+					// from
+					// shell
+					if (activityVisible) {
+						console.append(updatedOutput);
+					}
+				}
+
+				else if (msg.what == Constants.DATA_SAVED) {
+					progressDialog.dismiss();
+					String filePath = (String) msg.obj;
+					Toast.makeText(getApplicationContext(),
+							"Intercepted data saved in " + filePath + " file",
+							Toast.LENGTH_LONG).show();
+				} else if (msg.what == Constants.DATA_NOT_SAVED) {
+					progressDialog.dismiss();
+					Toast.makeText(getApplicationContext(),
+							"Not able to save data", Toast.LENGTH_LONG).show();
+				}
 			}
 
 			return true;
@@ -100,6 +140,8 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_configure);
+		AppLog.logDebug(TAG, "onCreate");
+
 		mCallbackHandler = new Handler(new CallbackHandler());
 		appInfo = (ApplicationInfo) getIntent().getExtras().get(
 				Constants.APP_INFO);
@@ -176,6 +218,7 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 	@Override
 	protected void onStop() {
 		super.onStop();
+		activityVisible = false;
 	}
 
 	@Override
@@ -272,6 +315,10 @@ public class ConfigureLogger extends Activity implements OnClickListener {
 					}
 				});
 		dialogBuilder.create().show();
+	}
+	
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
 	}
 
 }

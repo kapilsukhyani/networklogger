@@ -3,6 +3,8 @@ package com.enlighten.transparentproxy.constants;
 public class Constants {
 	public static final String AWS_MESSAGE = "awsmessage";
 
+	public static String INTERNAL_FILE_PATH;
+
 	public static final String PREF_DIRECTORY_LISTING = "prefDirectotyListing";
 	public static final String PREF_DIRECTORY = "prefDirectory";
 	public static final String PREF_VIBRATE = "prefVibrate";
@@ -36,6 +38,7 @@ public class Constants {
 	public static final String FILTER = "current_filter";
 
 	public static final String OPENSSL = "openssl";
+	public static final String OPENSSL_DIR = "openssl_files";
 
 	public static final String SOCAT = "socat";
 
@@ -82,14 +85,11 @@ public class Constants {
 	// redirects tcp packets targeted to a system identified by [DESTINATION_IP]
 	// and port 443 (https) from an app with uid identified by [UID] to
 	// the service listening at 127.0.0.1:4443 i.e. socat in our case
-	public static final String IPTABLES_APP_LEVEL_FILTER_COMMAND = "iptables -t nat -I OUTPUT -p 6 --dport 443 -d [DESTINATION_IP] -m owner --uid-owner [UID] -j DNAT --to 127.0.0.1:4443";
+	public static final String IPTABLES_APP_LEVEL_FILTER_COMMAND = "iptables -t nat -I OUTPUT -p 6 --dport 443 -d [DESTINATION_IP] -m owner --uid-owner [UID] -j DNAT --to 127.0.0.1:4433";
 	public static final String IPTABLES_NAT_TABLE_CLEAR_COMMAND = "iptables -t nat -F OUTPUT";
 
 	public static final int SOCAT_COMMAND_TIMEOUT = 180000;
 	public static final String SOCAT_KILL_COMMAND = "pkill socat";
-
-
-
 
 	public static String SOCAT_TRANSPARENT_PROXY_COMMAND;
 
@@ -98,8 +98,9 @@ public class Constants {
 	public static String OPENSSL_CREATE_SERVER_CSR_COMMAND;
 
 	public static final void initPaths(String internalFileDirPath) {
+		INTERNAL_FILE_PATH = internalFileDirPath;
 		OPENSSL_WORKING_DIRECTORY_PATH = internalFileDirPath + PATH_SEPARATOR
-				+ OPENSSL;
+				+ OPENSSL_DIR;
 		CA_CERT_FILE_PATH = OPENSSL_WORKING_DIRECTORY_PATH + PATH_SEPARATOR
 				+ CA_FILE_NAME;
 		CA_KEY_FILE_PATH = OPENSSL_WORKING_DIRECTORY_PATH + PATH_SEPARATOR
@@ -124,16 +125,23 @@ public class Constants {
 	}
 
 	private static void initCommands() {
-		SOCAT_TRANSPARENT_PROXY_COMMAND = "socat -v openssl-listen:4443,reuseaddr,verify=0,cert="
+		/*
+		 * SOCAT_TRANSPARENT_PROXY_COMMAND =
+		 * "socat -v openssl-listen:4443,reuseaddr,verify=0,cert=" +
+		 * SERVER_CERT_FILE_PATH + ",key=" + SERVER_KEY_FILE_PATH + ",cafile=" +
+		 * CA_CERT_FILE_PATH + ",debug,fork SYSTEM:'tee " + REQUESTS_FILE_PATH +
+		 * " | socat - \"openssl:[DOMAIN_NAME]:443,verify=0,debug,capath=" +
+		 * SYSTEM_CACERTS_PATH + "\" | tee " + RESPONSES_FILE_PATH + "'";
+		 */
+
+		SOCAT_TRANSPARENT_PROXY_COMMAND = "socat -v openssl-listen:4433,reuseaddr,verify=0,cert="
 				+ SERVER_CERT_FILE_PATH
 				+ ",key="
 				+ SERVER_KEY_FILE_PATH
 				+ ",cafile="
 				+ CA_CERT_FILE_PATH
-				+ ",debug,fork SYSTEM:'tee "
-				+ REQUESTS_FILE_PATH
-				+ " | socat - \"openssl:[DOMAIN_NAME]:443,verify=0,debug,capath="
-				+ SYSTEM_CACERTS_PATH + "\" | tee " + RESPONSES_FILE_PATH + "'";
+				+ ",debug,fork openssl:[DOMAIN_NAME]:443,verify=0,debug,capath="
+				+ SYSTEM_CACERTS_PATH;
 
 		// this comand will not ask for ca key password as non secure(password
 		// less key) is used
@@ -152,5 +160,23 @@ public class Constants {
 				+ SERVER_CSR_FILE_PATH
 				+ " -subj '/C=IN/ST=MAHA/L=PUNE/O=Enlighten/OU=Development/CN=[DOMAIN_NAME]'";
 
+	}
+
+	/**
+	 * Update the openssl command to point programmatically installed binary
+	 */
+	public static void updateOpensslCommandToInstalledBinaryPath() {
+		OPENSSL_CREATE_CERTIFICATE_COMMAND = INTERNAL_FILE_PATH
+				+ PATH_SEPARATOR + OPENSSL_CREATE_CERTIFICATE_COMMAND;
+		OPENSSL_CREATE_SERVER_CSR_COMMAND = INTERNAL_FILE_PATH + PATH_SEPARATOR
+				+ OPENSSL_CREATE_SERVER_CSR_COMMAND;
+	}
+
+	/**
+	 * Update the socat command to point programmatically installed binary
+	 */
+	public static void updateSocatCommandToInstalledBinaryPath() {
+		SOCAT_TRANSPARENT_PROXY_COMMAND = INTERNAL_FILE_PATH + PATH_SEPARATOR
+				+ SOCAT_TRANSPARENT_PROXY_COMMAND;
 	}
 }
