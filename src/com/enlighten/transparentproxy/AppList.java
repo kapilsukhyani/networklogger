@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
 import android.app.Dialog;
 import android.app.ListActivity;
 import android.app.ProgressDialog;
@@ -295,22 +296,11 @@ public class AppList extends ListActivity implements OnItemClickListener {
 				}
 
 				if (!checkRequiredBinaries()) {
-					Dialog d = new AlertDialog.Builder(AppList.this)
-							.setMessage(
-									"Not able to install prerequisites, cannot run app")
-							.setCancelable(false)
-							.setPositiveButton("OK", new OnClickListener() {
-
-								@Override
-								public void onClick(DialogInterface dialog,
-										int which) {
-									dialog.dismiss();
-									AppList.this.finish();
-
-								}
-							}).create();
-					d.show();
-
+					Toast.makeText(
+							AppList.this,
+							"Not able to install prerequisites, cannot run app",
+							Toast.LENGTH_LONG).show();
+					finish();
 				}
 
 				return null;
@@ -376,8 +366,58 @@ public class AppList extends ListActivity implements OnItemClickListener {
 
 		}
 
+		if (RootTools.findBinary(Constants.BUSYBOX)) {
+			AppLog.logDebug(TAG, "Found busybox");
+		} else {
+			AppLog.logDebug(TAG, "busybox not found, installing binary");
+			runOnUiThread(new Runnable() {
+
+				@Override
+				public void run() {
+					showBusyboxInstallationDialog();
+				}
+			});
+
+		}
+
 		return true;
 
+	}
+
+	private void showBusyboxInstallationDialog() {
+
+		new Builder(AppList.this)
+				.setTitle("Busybox is required to run this app.")
+				.setMessage("Do you want to install it?")
+				.setCancelable(false)
+				.setPositiveButton("Install busybox",
+						new DialogInterface.OnClickListener() {
+
+							@Override
+							public void onClick(DialogInterface dialog,
+									int which) {
+								Toast.makeText(
+										AppList.this,
+										"Remember to run the app after downloading the app to install busybox",
+										Toast.LENGTH_LONG).show();
+								dialog.dismiss();
+								// install the binary as it is not available
+								RootTools.offerBusyBox(AppList.this);
+								finish();
+							}
+						})
+				.setNegativeButton("No", new DialogInterface.OnClickListener() {
+
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						dialog.dismiss();
+						Toast.makeText(
+								AppList.this,
+								"Closing app as prerequisites are not available",
+								Toast.LENGTH_LONG).show();
+						AppList.this.finish();
+					}
+				}).create().show();
 	}
 
 	@Override

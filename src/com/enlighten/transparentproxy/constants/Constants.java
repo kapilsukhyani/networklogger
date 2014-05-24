@@ -41,6 +41,7 @@ public class Constants {
 	public static final String OPENSSL_DIR = "openssl_files";
 
 	public static final String SOCAT = "socat";
+	public static final String BUSYBOX = "busybox";
 
 	public static final String SYSTEM_CACERTS_PATH = "/system/etc/security/cacerts/";
 	public static String OPENSSL_WORKING_DIRECTORY_PATH;
@@ -89,7 +90,7 @@ public class Constants {
 	public static final String IPTABLES_NAT_TABLE_CLEAR_COMMAND = "iptables -t nat -F OUTPUT";
 
 	public static final int SOCAT_COMMAND_TIMEOUT = 180000;
-	public static final String SOCAT_KILL_COMMAND = "pkill socat";
+	public static final String SOCAT_KILL_COMMAND = "busybox pkill socat";
 
 	public static String SOCAT_TRANSPARENT_PROXY_COMMAND;
 
